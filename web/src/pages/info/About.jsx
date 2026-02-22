@@ -3,7 +3,7 @@ import Button from '../../components/common/Button';
 
 const About = () => {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl [&_p]:text-justify">
       <h1 className="text-3xl font-bold text-brand-secondary mb-6">Sobre Nosotros</h1>
 
       {/* Historia */}
@@ -64,9 +64,9 @@ const About = () => {
       </section>
 
       {/* CTA */}
-      <div className="text-center bg-gradient-to-r from-brand-primary to-brand-accent rounded-xl p-8 text-white">
+      <div className="text-center gradient-primary rounded-xl p-8 text-white">
         <h2 className="text-2xl font-bold mb-2">¿Listo para probar?</h2>
-        <p className="mb-4 opacity-90">Descubre nuestros productos y lleva el sabor colombiano a tu mesa.</p>
+        <p className="mb-4 opacity-90 !text-center">Descubre nuestros productos y lleva el sabor colombiano a tu mesa.</p>
         <Link to="/catalogo">
           <Button variant="ghost" className="!bg-white !text-brand-primary hover:!bg-gray-100">
             Ver catálogo

@@ -3,7 +3,7 @@ const Cookies = () => {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold text-brand-secondary mb-6">Política de Cookies</h1>
 
-      <div className="bg-white rounded-xl shadow-md p-8 prose prose-sm max-w-none">
+      <div className="bg-white rounded-xl shadow-md p-8 prose prose-sm max-w-none [&_p]:text-justify">
         <p className="text-gray-500 text-sm mb-6">Última actualización: 1 de enero de 2026</p>
 
         <h2 className="text-lg font-semibold text-brand-secondary">¿Qué son las cookies?</h2>

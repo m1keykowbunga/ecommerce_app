@@ -137,7 +137,7 @@ function App() {
   }
 
   return (
-<<<<<<< HEAD
+
     <ClerkProvider
       publishableKey={CLERK_KEY}
       localization={{
@@ -157,9 +157,7 @@ function App() {
         },
       }}
     >
-=======
-    <ClerkProvider publishableKey={CLERK_KEY}>
->>>>>>> 7e5dbd3 (feat: módulo web actualizado)
+
       <QueryClientProvider client={queryClient}>
         {/* Sincroniza el getter de token de Clerk con el interceptor de axios */}
         <ClerkTokenSync />

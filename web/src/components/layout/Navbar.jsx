@@ -24,23 +24,23 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-ui-border backdrop-blur-nav shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex h-20 items-center justify-between">
+        <div className="relative flex h-20 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center group">
             <img
               src={logoColor}
               alt="Don Palito Jr"
-              className="h-14 w-auto transition-transform group-hover:scale-105"
+              className="h-16 w-auto transition-transform group-hover:scale-105"
             />
           </Link>
 
-          {/* Nav Desktop */}
-          <nav className="hidden items-center gap-6 md:flex">
+          {/* Nav Desktop — centrado absoluto */}
+          <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8">
             {links.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`text-sm font-medium transition-colors ${
+                className={`text-base font-medium transition-colors ${
                   isActive(link.to)
                     ? 'text-brand-primary font-semibold'
                     : 'text-text-secondary hover:text-brand-primary'
@@ -56,7 +56,7 @@ const Navbar = () => {
             {/* Cart */}
             <Link to="/carrito" className="relative group">
               <div className="p-2 hover:bg-brand-primary/5 rounded-lg transition-colors">
-                <IoCart className="h-5 w-5 text-text-secondary group-hover:text-brand-primary transition-colors" />
+                <IoCart className="h-7 w-7 text-text-secondary group-hover:text-brand-primary transition-colors" />
                 {totalItems > 0 && (
                   <span className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-brand-accent text-white text-xs font-bold flex items-center justify-center">
                     {totalItems}
@@ -70,7 +70,7 @@ const Navbar = () => {
               <div className="flex items-center gap-2">
                 <Link to="/perfil">
                   <button className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-brand-primary/5 transition-colors">
-                    <IoPerson className="h-4 w-4 text-brand-primary" />
+                    <IoPerson className="h-5 w-5 text-brand-primary" />
                     <span className="hidden sm:inline text-sm font-medium text-text-primary">
                       {user.name?.split(' ')[0] || user.nombre?.split(' ')[0]}
                     </span>
@@ -81,15 +81,12 @@ const Navbar = () => {
                   title="Cerrar sesión"
                   className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
                 >
-                  <IoLogOut className="h-4 w-4 text-text-secondary group-hover:text-red-600 transition-colors" />
+                  <IoLogOut className="h-5 w-5 text-text-secondary group-hover:text-red-600 transition-colors" />
                 </button>
               </div>
             ) : (
               <Link to="/login">
-                <Button
-                  size="sm"
-                  className="bg-brand-primary text-white hover:bg-brand-secondary"
-                >
+                <Button className="bg-brand-primary text-white hover:bg-brand-secondary">
                   Iniciar Sesión
                 </Button>
               </Link>
