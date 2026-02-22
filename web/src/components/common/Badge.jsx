@@ -1,19 +1,17 @@
-const Badge = ({
-  children,
+const Badge = ({ 
+  children, 
   variant = 'primary',
   size = 'md',
-  className = '',
-  onClick,
+  className = '' 
 }) => {
   const variantClasses = {
-    primary:   'bg-brand-primary text-white',
-    secondary: 'bg-brand-secondary text-white',
-    outline:   'bg-transparent border border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white transition-colors',
-    success:   'bg-green-500 text-white',
-    error:     'bg-red-500 text-white',
-    warning:   'bg-yellow-500 text-white',
-    info:      'bg-blue-500 text-white',
-    gray:      'bg-gray-500 text-white',
+    primary: 'bg-primary text-white',
+    secondary: 'bg-secondary text-white',
+    success: 'bg-green-500 text-white',
+    error: 'bg-red-500 text-white',
+    warning: 'bg-yellow-500 text-white',
+    info: 'bg-blue-500 text-white',
+    gray: 'bg-gray-500 text-white',
   };
 
   const sizeClasses = {
@@ -23,13 +21,11 @@ const Badge = ({
   };
 
   return (
-    <span
-      onClick={onClick}
+    <span 
       className={`
         inline-flex items-center font-medium rounded-full
-        ${variantClasses[variant] ?? ''}
+        ${variantClasses[variant]}
         ${sizeClasses[size]}
-        ${onClick ? 'cursor-pointer select-none' : ''}
         ${className}
       `}
     >

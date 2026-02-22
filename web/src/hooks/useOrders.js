@@ -4,23 +4,25 @@ import { useAuth } from '../contexts/AuthContext';
 import { orderService } from '../services/index';
 import { getProductId } from '../utils/productHelpers';
 
+// Mock de pedidos para desarrollo sin backend
+const mockOrders = [];
+
 export const useOrders = () => {
   const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
-      const data = await orderService.getOrderHistory();
-      return Array.isArray(data) ? data : data.orders || [];
+      if (!isAuthenticated) return mockOrders;
+      try {
+        const data = await orderService.getOrderHistory();
+        return Array.isArray(data) ? data : data.orders || mockOrders;
+      } catch {
+        return mockOrders;
+      }
     },
     enabled: isAuthenticated,
   });
-};
-
-export const useOrderDetail = (orderId) => {
-  const { data: orders = [], isLoading } = useOrders();
-  const order = orderId ? orders.find((o) => (o._id || o.id) === orderId) : null;
-  return { order, isLoading };
 };
 
 export const useCreateOrder = () => {

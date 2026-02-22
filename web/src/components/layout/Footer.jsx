@@ -15,11 +15,11 @@ const Footer = () => {
   return (
     <footer className="bg-brand-secondary text-white/80 mt-auto">
       <div className="container mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Columna 1: About */}
           <div>
             <div className="mb-4">
-              <img src={logoColor} alt="Don Palito Jr" className="h-16 w-auto" />
+              <img src={logoColor} alt="Don Palito Jr" className="h-14 w-auto" />
             </div>
             <p className="text-sm leading-relaxed text-white/70">
               Productos tradicionales de la mejor calidad.<br/>
@@ -142,7 +142,7 @@ const Footer = () => {
       {/* Copyright */}
       <div className="border-t border-white/10">
         <div className="container mx-auto px-6 py-6">
-          <div className="flex flex-col items-center gap-1 text-center">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
             <p className="text-sm text-white/40">
               © {currentYear} Don Palito Jr. Todos los derechos reservados.
             </p>

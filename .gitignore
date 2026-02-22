@@ -1,4 +1,8 @@
 node_modules
 .env
+<<<<<<< HEAD
 dist
 .idea/
+=======
+dist
+>>>>>>> 7e5dbd3 (feat: módulo web actualizado)
