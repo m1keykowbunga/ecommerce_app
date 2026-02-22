@@ -137,7 +137,25 @@ function App() {
   }
 
   return (
-    <ClerkProvider publishableKey={CLERK_KEY}>
+    <ClerkProvider
+      publishableKey={CLERK_KEY}
+      localization={{
+        signIn: {
+          start: {
+            subtitle: 'Inicia sesión para continuar',
+            actionText: '¿No tienes una cuenta?',
+            actionLink: 'Regístrate',
+          },
+        },
+        signUp: {
+          start: {
+            subtitle: 'Crea tu cuenta en Don Palito Jr.',
+            actionText: '¿Ya tienes una cuenta?',
+            actionLink: 'Inicia sesión',
+          },
+        },
+      }}
+    >
       <QueryClientProvider client={queryClient}>
         {/* Sincroniza el getter de token de Clerk con el interceptor de axios */}
         <ClerkTokenSync />

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { IoArrowForward } from 'react-icons/io5';
+import { IoArrowForward, IoPricetag } from 'react-icons/io5';
 import ProductCard from '../components/products/ProductCard';
 import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
@@ -71,17 +71,19 @@ const Home = () => {
 
       {/* Promos Banner */}
       {activePromos.length > 0 && (
-        <section className="bg-brand-accent/10 border-y border-brand-accent/20 py-4">
-          <div className="container flex flex-wrap items-center justify-center gap-4 text-sm">
-            {activePromos.map((promo) => (
-              <div key={promo.id} className="flex items-center gap-2">
-                <span className="bg-brand-accent text-white px-3 py-1 rounded-md font-mono font-bold text-xs">
-                  {promo.code}
+        <section className="bg-brand-accent/10 border-y border-brand-accent/20 py-4 overflow-hidden">
+          <div className="animate-marquee">
+            {[...activePromos, ...activePromos].map((promo, idx) => (
+              <span key={idx} className="inline-flex items-center gap-2 mx-12 text-base font-medium whitespace-nowrap">
+                <IoPricetag className="text-brand-accent flex-shrink-0" size={18} />
+                <span className="text-text-secondary">
+                  Usa el código{' '}
+                  <span className="bg-brand-accent text-white px-2 py-0.5 rounded font-mono font-bold text-sm">
+                    {promo.code}
+                  </span>
+                  {' '}y obtén {promo.description}.
                 </span>
-                <span className="text-text-secondary font-medium">
-                  {promo.description}
-                </span>
-              </div>
+              </span>
             ))}
           </div>
         </section>
@@ -91,7 +93,7 @@ const Home = () => {
       <section className="py-16 bg-white">
         <div className="container">
           <div className="mb-10 text-center">
-            <h2 className="font-sanstext-3xl font-bold text-text-primary">
+            <h2 className="font-sans text-3xl md:text-4xl font-bold text-text-primary">
               Nuestros Favoritos
             </h2>
             <p className="mt-2 text-text-secondary">
@@ -125,9 +127,9 @@ const Home = () => {
       </section>
 
       {/* Google Maps */}
-      <section className="py-16 bg-white">
+      <section className="pb-16 bg-white">
         <div className="container text-center">
-          <h2 className="mb-6 font-sanstext-3xl font-bold text-text-primary">
+          <h2 className="mb-6 font-sans text-3xl md:text-4xl font-bold text-text-primary">
             Encuéntranos
           </h2>
           <div className="mx-auto max-w-4xl overflow-hidden rounded-lg border-2 border-ui-border shadow-lg">

@@ -109,19 +109,20 @@ const MockLogin = () => {
 const Login = () => {
   if (clerkKey) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-8 gap-6">
-        <div className="text-center">
-          <img src={logoColor} alt="Don Palito Jr" className="h-32 w-auto mx-auto mb-2" />
-          <p className="text-gray-500 text-sm">Inicia sesión para continuar</p>
-        </div>
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-8">
         <SignIn
           routing="hash"
           signUpUrl="/registro"
           afterSignInUrl="/post-login"
           appearance={{
+            layout: {
+              logoImageUrl: logoColor,
+              logoLinkUrl: '/',
+            },
             elements: {
               headerTitle: { display: 'none' },
-              headerSubtitle: { display: 'none' },
+              logoBox: { height: '120px', justifyContent: 'center', marginBottom: '4px' },
+              logoImage: { height: '120px', width: 'auto', maxWidth: 'none' },
             },
           }}
         />
