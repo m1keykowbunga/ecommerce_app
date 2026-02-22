@@ -1,0 +1,311 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-ui-border;
+  }
+
+  body {
+    @apply bg-ui-background text-text-primary;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, sans-serif;
+    @apply text-text-primary;
+  }
+}
+
+/* ========== UTILIDADES PERSONALIZADAS ========== */
+
+/* Gradientes con colores del proyecto */
+.gradient-primary {
+  background: linear-gradient(135deg, #B06A4A 0%, #5B3A29 100%);
+}
+
+.gradient-warm {
+  background: linear-gradient(135deg, #B06A4A 0%, #C34928 100%);
+}
+
+.gradient-dark {
+  background: linear-gradient(135deg, #5B3A29 0%, #333333 100%);
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F3E6D4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B06A4A;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5B3A29;
+}
+
+/* ========== ANIMACIONES ========== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+/* ========== EFECTOS DE HOVER ========== */
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(176, 106, 74, 0.2);
+}
+
+/* Button gradient hover */
+.btn-gradient {
+  background: linear-gradient(135deg, #B06A4A 0%, #5B3A29 100%);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  background: linear-gradient(135deg, #C34928 0%, #B06A4A 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(173, 167, 165, 0.3);
+}
+
+/* Link hover */
+.link-hover {
+  @apply text-text-secondary transition-colors;
+}
+
+.link-hover:hover {
+  @apply text-brand-primary;
+}
+
+/* ========== TOAST NOTIFICATIONS ========== */
+
+.Toastify__toast {
+  border-radius: 0.625rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.Toastify__toast--success {
+  background: #36D399;
+  color: white;
+}
+
+.Toastify__toast--error {
+  background: #F87272;
+  color: white;
+}
+
+.Toastify__toast--warning {
+  background: #FBBD23;
+  color: #333333;
+}
+
+.Toastify__toast--info {
+  background: #3ABFF8;
+  color: white;
+}
+
+/* ========== BADGES ========== */
+
+.badge-brand {
+  @apply bg-brand-primary text-white px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-accent {
+  @apply bg-brand-accent text-white px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-discount {
+  @apply bg-brand-accent text-white px-2 py-1 rounded-full text-xs font-bold;
+}
+
+/* ========== CARDS ========== */
+
+.card-product {
+  @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300;
+  border: 1px solid #E5D8C8;
+}
+
+.card-product:hover {
+  @apply shadow-xl;
+  transform: translateY(-4px);
+}
+
+/* ========== INPUTS Y FORMS ========== */
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #B06A4A;
+  box-shadow: 0 0 0 3px rgba(176, 106, 74, 0.1);
+}
+
+.input-primary {
+  @apply border border-ui-border rounded-lg px-4 py-2 w-full;
+  @apply focus:border-brand-primary focus:ring-2 focus:ring-brand-primary focus:ring-opacity-20;
+}
+
+/* DaisyUI input-bordered: fondo blanco y borde brand */
+.input.input-bordered,
+.textarea.textarea-bordered,
+.select.select-bordered {
+  background-color: #FFFFFF;
+  border-color: rgba(91, 58, 41, 0.2);
+}
+
+.input.input-bordered:focus,
+.textarea.textarea-bordered:focus,
+.select.select-bordered:focus {
+  border-color: #B06A4A;
+  outline-color: #B06A4A;
+  box-shadow: 0 0 0 3px rgba(176, 106, 74, 0.1);
+}
+
+/* ========== BUTTONS ========== */
+
+.btn-primary {
+  @apply bg-brand-primary text-white px-6 py-2 rounded-lg font-medium;
+  @apply hover:bg-brand-secondary transition-all duration-300;
+}
+
+.btn-secondary {
+  @apply bg-brand-secondary text-white px-6 py-2 rounded-lg font-medium;
+  @apply hover:bg-brand-primary transition-all duration-300;
+}
+
+.btn-accent {
+  @apply bg-brand-accent text-white px-6 py-2 rounded-lg font-medium;
+  @apply hover:brightness-110 transition-all duration-300;
+}
+
+.btn-outline {
+  @apply border-2 border-brand-primary text-brand-primary px-6 py-2 rounded-lg font-medium;
+  @apply hover:bg-brand-primary hover:text-white transition-all duration-300;
+}
+
+/* DaisyUI btn-outline btn-primary: garantizar visibilidad del texto */
+.btn.btn-outline.btn-primary {
+  color: #B06A4A;
+  border-color: #B06A4A;
+  background-color: transparent;
+}
+
+.btn.btn-outline.btn-primary:hover {
+  background-color: #B06A4A;
+  color: #FFFFFF;
+  border-color: #B06A4A;
+}
+
+/* DaisyUI btn-outline btn-error: rojo visible */
+.btn.btn-outline.btn-error {
+  color: #F87272;
+  border-color: #F87272;
+  background-color: transparent;
+}
+
+.btn.btn-outline.btn-error:hover {
+  background-color: #F87272;
+  color: #FFFFFF;
+}
+
+/* ========== SKELETON LOADER ========== */
+
+.skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* ========== PRODUCT RATING ========== */
+
+.star-rating {
+  @apply flex gap-1;
+}
+
+.star-rating .star {
+  @apply text-brand-accent text-lg;
+}
+
+.star-rating .star.empty {
+  @apply text-gray-300;
+}
+
+/* ========== RESPONSIVE UTILITIES ========== */
+
+@media (max-width: 640px) {
+  .container {
+    @apply px-4;
+  }
+}
+
+/* ========== PRINT STYLES ========== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* ========== BACKDROP BLUR ========== */
+
+.backdrop-blur-nav {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.75);
+}
