@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 import { Coupon } from "../models/coupon.model.js";
+import { sendOrderCreatedAdminEmail, sendOrderCreatedClientEmail } from "../services/email.service.js";
 
 const stripe = new Stripe(ENV.STRIPE_SECRET_KEY);
 
@@ -124,6 +125,7 @@ export async function createPaymentIntent(req, res) {
                 orderItems: JSON.stringify(validatedItems),
                 shippingAddress: JSON.stringify(shippingAddress),
                 couponCode: appliedCoupon ? appliedCoupon.code : "",
+                discount: discount.toString(),
                 totalPrice: total.toString(),
             },
         });
@@ -156,7 +158,7 @@ export async function handleWebhook(req, res) {
         const paymentIntent = event.data.object;
 
         try {
-            const { userId, clerkId, orderItems, shippingAddress, couponCode, totalPrice } = paymentIntent.metadata;
+            const { userId, clerkId, orderItems, shippingAddress, couponCode, totalPrice, discount } = paymentIntent.metadata;
 
             const existingOrder = await Order.findOne({ "paymentResult.id": paymentIntent.id });
 
@@ -167,6 +169,7 @@ export async function handleWebhook(req, res) {
 
             const items = JSON.parse(orderItems);
             const parsedShippingAddress = JSON.parse(shippingAddress);
+            const parsedDiscount = parseFloat(discount) || 0;
 
             const enrichedOrderItems = [];
 
@@ -191,7 +194,45 @@ export async function handleWebhook(req, res) {
                     status: "succeeded",
                 },
                 totalPrice,
+                discount: parsedDiscount,
             });
+
+            try {
+                const user = await User.findById(userId);
+
+                if (user) {
+                    const emailData = {
+                        orderId: order._id.toString(),
+                        userName: user.name,
+                        userEmail: user.email,
+                        total: parseFloat(totalPrice),
+                        discount: parsedDiscount, 
+                        items: enrichedOrderItems.map((item) => ({
+                            name: item.name,
+                            quantity: item.quantity,
+                            price: item.price,
+                        })),
+                        shippingAddress: parsedShippingAddress,
+                        emailNotifications: user.emailNotifications,
+                    };
+
+                    Promise.allSettled([
+                        sendOrderCreatedAdminEmail(emailData),
+                        sendOrderCreatedClientEmail(emailData),
+                    ]).then((results) => {
+                        results.forEach((result, index) => {
+                            if (result.status === "fulfilled") {
+                                const emailType = index === 0 ? "Admin" : "Cliente";
+                                console.log(`Email de nuevo pedido enviado a ${emailType}`);
+                            } else {
+                                console.error("Error enviando email:", result.reason);
+                            }
+                        });
+                    });
+                }
+            } catch (emailError) {
+                console.error("Error en proceso de emails:", emailError.message);
+            }
 
             for (const item of items) {
                 await Product.findByIdAndUpdate(item.product, {
@@ -214,4 +255,129 @@ export async function handleWebhook(req, res) {
     }
 
     res.json({ received: true });
+}
+
+export async function createTransferOrder(req, res) {
+    try {
+        const { cartItems, shippingAddress, couponCode } = req.body;
+        
+        const user = req.user;
+
+        if (!cartItems || cartItems.length === 0) {
+            return res.status(400).json({ error: "Cart is empty" });
+        }
+
+        if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.streetAddress) {
+            return res.status(400).json({ error: "Shipping address is required" });
+        }
+
+        let subtotal = 0;
+        const enrichedItems = [];
+
+        for (const item of cartItems) {
+            const product = await Product.findById(item.product._id);
+            if (!product) {
+                return res.status(404).json({ error: `Producto no encontrado` });
+            }
+            if (product.stock < item.quantity) {
+                return res.status(400).json({ error: `Stock insuficiente para ${product.name}` });
+            }
+
+            subtotal += product.price * item.quantity;
+            enrichedItems.push({
+                product: product._id,
+                name: product.name,
+                price: product.price,
+                quantity: item.quantity,
+            });
+        }
+
+        let discount = 0;
+        if (couponCode) {
+            const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim() });
+            const isValid = coupon && coupon.isActive && (!coupon.expiresAt || new Date() < coupon.expiresAt);
+
+            if (!isValid) {
+                return res.status(400).json({ error: "El cupón no es válido o ha expirado." });
+            }
+
+            const alreadyUsed = coupon.usedBy.some(id => id.toString() === user._id.toString());
+            if (alreadyUsed) {
+                return res.status(400).json({ error: "Ya usaste este cupón anteriormente." });
+            }
+
+            discount = coupon.discountType === "percentage"
+                ? Math.round((subtotal * coupon.discountValue) / 100)
+                : Math.min(coupon.discountValue, subtotal);
+
+            await Coupon.findOneAndUpdate(
+                { code: couponCode.toUpperCase().trim() },
+                { $addToSet: { usedBy: user._id } }
+            );
+        }
+
+        const shipping = 10000;
+        const total = subtotal + shipping - discount;
+
+        if (total <= 0) {
+            return res.status(400).json({ error: "Invalid order total" });
+        }
+
+        const order = await Order.create({
+            user: user._id,
+            clerkId: user.clerkId,
+            orderItems: enrichedItems,
+            shippingAddress,
+            paymentResult: {
+                id: `transfer_${Date.now()}`,
+                status: "pending_transfer",
+            },
+            totalPrice: total,
+            discount,
+            status: "pending",
+        });
+
+        for (const item of enrichedItems) {
+            await Product.findByIdAndUpdate(item.product, {
+                $inc: { stock: -item.quantity },
+            });
+        }
+
+        try {
+            const emailData = {
+                orderId: order._id.toString(),
+                userName: user.name,
+                userEmail: user.email,
+                total,
+                discount,
+                items: enrichedItems.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                })),
+                shippingAddress,
+                emailNotifications: user.emailNotifications,
+            };
+
+            Promise.allSettled([
+                sendOrderCreatedAdminEmail(emailData),
+                sendOrderCreatedClientEmail(emailData),
+            ]).then(results => {
+                results.forEach((result, index) => {
+                    if (result.status === "fulfilled") {
+                        console.log(`Email transferencia enviado a ${index === 0 ? "Admin" : "Cliente"}`);
+                    } else {
+                        console.error("Error enviando email:", result.reason);
+                    }
+                });
+            });
+        } catch (emailError) {
+            console.error("Error en emails de transferencia:", emailError.message);
+        }
+
+        return res.status(201).json({ message: "Order created successfully", order });
+    } catch (error) {
+        console.error("Error in createTransferOrder:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
 }

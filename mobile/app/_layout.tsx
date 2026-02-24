@@ -40,7 +40,7 @@ const queryClient = new QueryClient({
   },
 });
 
-export default Sentry.wrap(function RootLayout() { 
+export default Sentry.wrap(function RootLayout() {
   return (
     <ClerkProvider tokenCache={tokenCache}>
       <QueryClientProvider client={queryClient}>

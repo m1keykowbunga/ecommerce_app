@@ -23,6 +23,16 @@ export const protectRoute = [
                 });
             }
 
+            if (!user.isActive) {
+                const adminEmail = ENV.ADMIN_EMAIL;
+                return res.status(403).json({
+                    code: "ACCOUNT_INACTIVE",
+                    message: adminEmail
+                        ? `Tu cuenta ha sido desactivada. Escríbenos a ${adminEmail} para recuperarla.`
+                        : "Tu cuenta ha sido desactivada. Contacta a soporte para recuperarla.",
+                });
+            }
+
             req.user = user;
             req.clerkAuth = auth;
             
@@ -47,40 +57,20 @@ export const adminOnly = async (req, res, next) => {
 
         const userRole = req.clerkAuth.sessionClaims?.role;
         const userEmail = req.user.email;
-
-        if (ENV.NODE_ENV === 'development') {
-            console.log(`Admin check:`, {
-                email: userEmail,
-                role: userRole || 'sin role',
-                clerkId: req.user.clerkId
-            });
-        }
-
         const isAdmin = userRole === 'admin';
-        
         const isAdminByEmail = ENV.NODE_ENV === 'development' &&
                                 ENV.ADMIN_EMAIL && 
                                 ENV.ADMIN_EMAIL.split(',')
                                     .map(e => e.trim())
                                     .includes(userEmail);
 
-        if (!isAdmin && !isAdminByEmail) {
-            if (ENV.NODE_ENV === 'development') {
-                console.log(`Acceso denegado:`, {
-                    email: userEmail,
-                    role: userRole || 'sin rol'
-                });
-            }        
+        if (!isAdmin && !isAdminByEmail) {   
             return res.status(403).json({ 
                 message: "Forbidden - admin access only",
                 details: ENV.NODE_ENV === 'development' 
                     ? `Rol actual: ${userRole || 'ninguno'}` 
                     : undefined
             });
-        }
-
-        if (ENV.NODE_ENV === 'development') {
-            console.log(`Admin autorizado: ${userEmail} (${isAdmin ? 'por rol' : 'por email'})`);
         }
         next();
     } catch (error) {

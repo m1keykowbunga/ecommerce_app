@@ -3,6 +3,7 @@ import axios from "axios";
 import { useEffect, useRef } from "react";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import { useRouter } from "expo-router";
 
 const getApiUrl = () => {
   if (!__DEV__) {
@@ -36,8 +37,9 @@ const api = axios.create({
 });
 
 export const useApi = () => {
-  const { getToken, isSignedIn } = useAuth();
-  
+  const { getToken, isSignedIn, signOut } = useAuth();
+  const router = useRouter();
+
   const requestInterceptorRef = useRef<number | null>(null);
   const responseInterceptorRef = useRef<number | null>(null);
 
@@ -53,27 +55,18 @@ export const useApi = () => {
       async (config) => {
         try {
           const skipCache = config.headers['X-Retry-Request'] === 'true';
-         
-          const token = await getToken({ 
-            template: "mobile-app-token", 
+
+          const token = await getToken({
+            template: "mobile-app-token",
             skipCache
           });
 
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            
-            try {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              const expiresIn = payload.exp - Math.floor(Date.now() / 1000);
-              const status = skipCache ? "Generado" : "desde caché";
-            } catch (e) {
-              console.log("Error al decodificar token");
-            }
           }
         } catch (error) {
           console.error("Error obteniendo token:", error);
         }
-
         return config;
       },
       (error) => {
@@ -88,12 +81,21 @@ export const useApi = () => {
       async (error) => {
         const originalRequest = error.config;
 
+        if (
+          error.response?.status === 403 &&
+          error.response?.data?.code === "ACCOUNT_INACTIVE"
+        ) {
+          await signOut();
+          router.replace("/account-inactive");
+          return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-          
+
           originalRequest._retry = true;
 
           try {
-            originalRequest.headers['X-Retry-Request'] = 'true';              
+            originalRequest.headers['X-Retry-Request'] = 'true';
             return await api(originalRequest);
           } catch (refreshError) {
             return Promise.reject(refreshError);
@@ -111,7 +113,7 @@ export const useApi = () => {
         api.interceptors.response.eject(responseInterceptorRef.current);
       }
     };
-  }, [getToken, isSignedIn]);
+  }, [getToken, isSignedIn, router, signOut]);
 
   return api;
 };

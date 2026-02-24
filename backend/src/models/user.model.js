@@ -57,7 +57,19 @@ const userSchema = new mongoose.Schema(
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Product",
             },
-        ],    
+        ],
+        emailNotifications: {           
+            type: Boolean,
+            default: true
+        },
+        marketingEmails: {
+            type: Boolean,
+            default: false
+        },
+        isActive: {       
+            type: Boolean,
+            default: true,
+        },    
     },
     {
         timestamps: true,

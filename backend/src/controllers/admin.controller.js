@@ -2,7 +2,7 @@ import cloudinary from "../config/cloudinary.js";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 import { User } from "../models/user.model.js";
-
+import { sendOrderUpdatedAdminEmail, sendOrderUpdatedClientEmail,} from "../services/email.service.js";
 
 export async function createProduct (req, res) {
     try {
@@ -46,7 +46,6 @@ export async function createProduct (req, res) {
 
 export async function getAllProducts (_, res) {
     try {
-        //-1 means descending order: most recent products first
         const products = await Product.find().sort({createdAt: -1});
         return res.status(200).json(products);
     } catch (error) {
@@ -116,11 +115,13 @@ export async function updateOrderStatus (req, res) {
             return res.status(400).json({message: "Invalid status"});
         }
 
-        const order = await Order.findById(orderId);
+        const order = await Order.findById(orderId).populate('user').populate('orderItems.product', 'name price');
 
         if (!order) {
             return res.status(404).json({message: "Order not found"});
         }
+
+        const previousStatus = order.status;
 
         order.status = status;
 
@@ -133,6 +134,46 @@ export async function updateOrderStatus (req, res) {
         }
 
         await order.save();
+
+        if (previousStatus !== status) {
+            try {
+                const user = order.user;
+
+                if (user) {
+                    const emailData = {
+                        orderId: order._id.toString(),
+                        status,
+                        userEmail: user.email,
+                        userName: user.name,
+                        total: order.totalPrice,
+                        discount: order.discount || 0, 
+                        items: order.orderItems.map(item => ({
+                            name: item.name || item.product?.name || 'Producto',
+                            quantity: item.quantity,
+                            price: item.price,
+                        })),
+                        shippingAddress: order.shippingAddress,
+                        emailNotifications: user.emailNotifications,    
+                    };
+
+                    Promise.allSettled([
+                        sendOrderUpdatedAdminEmail(emailData),
+                        sendOrderUpdatedClientEmail(emailData),
+                    ]).then(results => {
+                        results.forEach((result, index) => {
+                            if (result.status === 'fulfilled') {
+                                const emailType = index === 0 ? 'Admin' : 'Cliente';
+                                console.log(`Email enviado a ${emailType}`);
+                            } else if (result.status === 'rejected') {
+                                console.error('Error enviando email:', result.reason);
+                            }
+                        });
+                    }).catch(err => console.error('Unexpected email handling error:', err));
+                }
+            } catch (emailError) {
+                console.error('Error en proceso de emails:', emailError.message);
+            }
+        }
 
         return res.status(200).json({message: "Order status updated successfully", order});
      
@@ -208,3 +249,31 @@ export const deleteProduct = async (req, res) => {
     }
 };
 
+export async function updateCustomerStatus(req, res) {
+    try {
+        const { customerId } = req.params;
+        const { isActive } = req.body;
+
+        if (typeof isActive !== "boolean") {
+            return res.status(400).json({ message: "isActive must be a boolean" });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            customerId,
+            { isActive },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: "Customer not found" });
+        }
+
+        return res.status(200).json({
+            message: `Customer ${isActive ? "activated" : "deactivated"} successfully`,
+            customer: { _id: user._id, name: user.name, email: user.email, isActive: user.isActive },
+        });
+    } catch (error) {
+        console.error("Error in updateCustomerStatus controller:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}

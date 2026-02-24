@@ -1,14 +1,35 @@
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useApi } from "@/lib/api";
+import { useEffect, useState } from "react";
 
 
 const TabsLayout = () => {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, signOut } = useAuth();
   const insets = useSafeAreaInsets();
+  const api = useApi();
+  const router = useRouter();
+  const [isVerified, setIsVerified] = useState(false);
 
-  if (!isLoaded) return null; // for a better ux
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    api.get("/users/profile")
+      .then(() => setIsVerified(true))
+      .catch(async (error) => {
+        if (error?.response?.data?.code === "ACCOUNT_INACTIVE") {
+          await signOut();
+          router.replace("/account-inactive");
+        } else {
+          setIsVerified(true);
+        }
+      });
+  }, [isSignedIn]);
+
+  if (!isLoaded) return null;
+  if (isSignedIn && !isVerified) return null;
   if (!isSignedIn) return <Redirect href={"/(auth)"} />;
 
   return (
@@ -19,8 +40,8 @@ const TabsLayout = () => {
         tabBarStyle: {
           backgroundColor: "#9A8A80",
           borderTopWidth: 0,
-          elevation: 8, // Android
-          shadowColor: "#000", // iOS
+          elevation: 8,
+          shadowColor: "#000",
           shadowOpacity: 0.08,
           shadowOffset: { width: 0, height: -2 },
           shadowRadius: 6,

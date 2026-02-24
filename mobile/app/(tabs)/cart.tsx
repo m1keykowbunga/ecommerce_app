@@ -21,7 +21,7 @@ import * as Sentry from "@sentry/react-native";
 interface AppliedCoupon {
   code: string;
   discountType: "percentage" | "fixed";
-  discountValue: number; 
+  discountValue: number;
 }
 
 const calculateDiscount = (subtotal: number, coupon: AppliedCoupon | null): number => {
@@ -29,7 +29,7 @@ const calculateDiscount = (subtotal: number, coupon: AppliedCoupon | null): numb
   if (coupon.discountType === "percentage") {
     return Math.round((subtotal * coupon.discountValue) / 100);
   }
-  return Math.min(coupon.discountValue, subtotal); 
+  return Math.min(coupon.discountValue, subtotal);
 };
 
 const CartScreen = () => {
@@ -62,7 +62,7 @@ const CartScreen = () => {
 
   const cartItems = cart?.items || [];
   const subtotal = cartTotal;
-  const shipping = 10000; 
+  const shipping = 10000;
   const discount = calculateDiscount(subtotal, appliedCoupon);
   const total = subtotal + shipping - discount;
 
@@ -217,7 +217,7 @@ const CartScreen = () => {
             { text: "OK", onPress: () => { } },
           ]);
         clearCart();
-        handleRemoveCoupon(); 
+        handleRemoveCoupon();
       }
     } catch (error: any) {
       Sentry.logger.error("Pago fallido", {
@@ -232,6 +232,41 @@ const CartScreen = () => {
         error?.message ||
         "Error al procesar el pago. Por favor, intenta de nuevo.";
 
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleBankTransferPayment = async () => {
+    if (!selectedAddress) return;
+    setPaymentMethodModalVisible(false);
+
+    try {
+      setPaymentLoading(true);
+
+      await api.post("/payment/create-transfer-order", {
+        cartItems,
+        couponCode: appliedCoupon?.code ?? null,
+        shippingAddress: {
+          fullName: selectedAddress.fullName,
+          streetAddress: selectedAddress.streetAddress,
+          city: selectedAddress.city,
+          phoneNumber: selectedAddress.phoneNumber,
+        },
+      });
+
+      Alert.alert(
+        "Pedido recibido",
+        "Te enviaremos instrucciones para completar la transferencia."
+      );
+
+      clearCart();
+      handleRemoveCoupon();
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.error ||
+        "Error al procesar el pedido. Por favor, intenta de nuevo.";
       Alert.alert("Error", errorMessage);
     } finally {
       setPaymentLoading(false);
@@ -435,7 +470,7 @@ const CartScreen = () => {
               </View>
             </View>
 
-            <OrderSummary subtotal={subtotal} shipping={shipping} total={total} discount={discount} couponLabel={renderCouponLabel()}/>
+            <OrderSummary subtotal={subtotal} shipping={shipping} total={total} discount={discount} couponLabel={renderCouponLabel()} />
           </ScrollView>
           <View
             className="absolute bottom-0 left-0 right-0 bg-brand-secondary/20 backdrop-blur-xl border-t border-brand-secondary/30 pt-4 pb-16 px-6"
@@ -470,6 +505,7 @@ const CartScreen = () => {
         visible={paymentMethodModalVisible}
         onClose={() => setPaymentMethodModalVisible(false)}
         onCreditCardSelected={handleCreditCardPayment}
+        onBankTransferSelected={handleBankTransferPayment}
         total={total}
       />
     </SafeScreen>

@@ -8,6 +8,7 @@ interface PaymentMethodModalProps {
     visible: boolean;
     onClose: () => void;
     onCreditCardSelected: () => void;
+    onBankTransferSelected: () => void;
     total: number;
 }
 
@@ -15,6 +16,7 @@ const PaymentMethodModal = ({
     visible,
     onClose,
     onCreditCardSelected,
+    onBankTransferSelected,
     total,
 }: PaymentMethodModalProps) => {
     const [selectedMethod, setSelectedMethod] = useState<"card" | "transfer" | null>(null);
@@ -33,36 +35,8 @@ const PaymentMethodModal = ({
         if (selectedMethod === "card") {
             onCreditCardSelected();
         } else if (selectedMethod === "transfer") {
-            handleBankTransfer();
+            onBankTransferSelected();
         }
-    };
-
-    const handleBankTransfer = () => {
-        const message = `Hola, adjunto el comprobante de transferencia a la cuenta de ahorros de Bancolombia ${bankDetails.accountNumber} por un total de $${total} COP.`;
-        const whatsappUrl = `whatsapp://send?phone=${bankDetails.whatsappNumber}&text=${encodeURIComponent(message)}`;
-
-        const whatsappWebUrl = `https://wa.me/${bankDetails.whatsappNumber}?text=${encodeURIComponent(message)}`;
-
-        Linking.canOpenURL(whatsappUrl)
-        .then((supported) => {
-            if (supported) {
-                return Linking.openURL(whatsappUrl);
-            } else {
-                console.log("WhatsApp app no disponible, usando WhatsApp Web");
-                return Linking.openURL(whatsappWebUrl);
-            }
-        })
-        .catch((err) => {
-            console.error("Error al abrir WhatsApp:", err);
-            Linking.openURL(whatsappWebUrl)
-                .catch((webErr) => {
-                    console.error("Error al abrir WhatsApp Web:", webErr);
-                    Alert.alert(
-                        "Error",
-                        "No se pudo abrir WhatsApp. Por favor, intenta nuevamente."
-                    );
-                });
-        });
     };
 
     return (
@@ -246,9 +220,9 @@ const PaymentMethodModal = ({
                             <View className="flex-row items-center justify-center">
                                 {selectedMethod === "transfer" ? (
                                 <>
-                                    <Ionicons name="logo-whatsapp" size={20} color="#FFFFFF" />
+                                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
                                     <Text className="text-white font-bold text-lg ml-2">
-                                    Enviar por WhatsApp
+                                    Continuar
                                     </Text>
                                 </>
                                 ) : (

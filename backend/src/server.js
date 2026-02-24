@@ -17,6 +17,7 @@ import productRoutes from "./routes/product.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import paymentRoutes from "./routes/payment.routes.js"
 import couponRoutes from "./routes/coupon.routes.js";
+import "./services/email.service.js";
 
 
 const app = express();

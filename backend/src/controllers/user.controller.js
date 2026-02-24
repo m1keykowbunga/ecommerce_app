@@ -1,4 +1,5 @@
 import { User } from "../models/user.model.js";
+import { sendMarketingSubscriptionEmail } from "../services/email.service.js";
 
 export async function addAddress(req, res) {
     try {
@@ -10,7 +11,6 @@ export async function addAddress(req, res) {
             return res.status(400).json({ error: "Missing required address fields" });
         }
 
-        // if this is set as default, unset all other defaults
         if (isDefault) {
             user.addresses.forEach((addr) => {
                 addr.isDefault = false;
@@ -58,7 +58,6 @@ export async function updateAddress(req, res) {
             return res.status(404).json({ error: "Address not found" });
         }
 
-        // if this is set as default, unset all other defaults
         if (isDefault) {
             user.addresses.forEach((addr) => {
                 addr.isDefault = false;
@@ -101,7 +100,6 @@ export async function addToWishlist(req, res) {
         const { productId } = req.body;
         const user = req.user;
 
-        // check if product is already in the wishlist
         if (user.wishlist.includes(productId)) {
             return res.status(400).json({ error: "Product already in wishlist" });
         }
@@ -121,7 +119,6 @@ export async function removeFromWishlist(req, res) {
         const { productId } = req.params;
         const user = req.user;
 
-        // check if product is already in the wishlist
         if (!user.wishlist.includes(productId)) {
             return res.status(400).json({ error: "Product not found in wishlist" });
         }
@@ -138,12 +135,79 @@ export async function removeFromWishlist(req, res) {
 
 export async function getWishlist(req, res) {
     try {
-        // we're using populate, bc wishlist is just an array of product ids
         const user = await User.findById(req.user._id).populate("wishlist");
 
         return res.status(200).json({ wishlist: user.wishlist });
     } catch (error) {
         console.error("Error in getWishlist controller:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+export async function updateNotificationPreferences(req, res) {
+    try {
+        const { emailNotifications, marketingEmails } = req.body;
+
+        const updateFields = {};
+        if (emailNotifications !== undefined) updateFields.emailNotifications = emailNotifications;
+        if (marketingEmails !== undefined) updateFields.marketingEmails = marketingEmails;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            updateFields,
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const justSubscribed = marketingEmails === true && req.user.marketingEmails === false;
+        if (justSubscribed) {
+            sendMarketingSubscriptionEmail({
+                userName: user.name,
+                userEmail: user.email,
+            }).catch((err) =>
+                console.error("Error enviando email de suscripción:", err.message)
+            );
+        }
+
+        return res.status(200).json({
+            message: "Notification preferences updated successfully",
+            emailNotifications: user.emailNotifications,
+            marketingEmails: user.marketingEmails,
+        });
+    } catch (error) {
+        console.error("Error updating notification preferences:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+export async function getProfile(req, res) {
+    try {
+        const user = req.user;
+        return res.status(200).json({
+            name: user.name,
+            email: user.email,
+            imageUrl: user.imageUrl,
+            emailNotifications: user.emailNotifications,
+            marketingEmails: user.marketingEmails,
+        });
+    } catch (error) {
+        console.error("Error in getProfile controller:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+export async function deactivateAccount(req, res) {
+    try {
+        const user = req.user;
+
+        await User.findByIdAndUpdate(user._id, { isActive: false });
+
+        return res.status(200).json({ message: "Account deactivated successfully" });
+    } catch (error) {
+        console.error("Error in deactivateAccount controller:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 }

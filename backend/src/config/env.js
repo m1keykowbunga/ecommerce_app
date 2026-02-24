@@ -16,6 +16,7 @@ export const ENV = {
     ADMIN_EMAIL: process.env.ADMIN_EMAIL,
     EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
     APP_NAME: process.env.APP_NAME,
+    LOGO_URL: process.env.LOGO_URL,
     CLIENT_URL: process.env.CLIENT_URL,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
