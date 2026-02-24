@@ -6,7 +6,7 @@ import { sendOrderCreatedAdminEmail, sendOrderCreatedClientEmail } from "../serv
 export async function createOrder(req, res) {
     try {
         const user = req.user;
-        const { orderItems, shippingAddress, paymentResult, totalPrice } = req.body;
+        const { orderItems, shippingAddress, paymentResult, totalPrice, discount } = req.body;
 
         if (!orderItems || orderItems.length === 0) {
             return res.status(400).json({ error: "No order items" });

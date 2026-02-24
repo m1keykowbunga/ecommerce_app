@@ -256,6 +256,11 @@ const CartScreen = () => {
         },
       });
 
+      Alert.alert(
+        "Pedido recibido",
+        "Te enviaremos instrucciones para completar la transferencia."
+      );
+
       clearCart();
       handleRemoveCoupon();
     } catch (error: any) {

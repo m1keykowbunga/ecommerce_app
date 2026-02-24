@@ -238,7 +238,7 @@ export const sendWelcomeEmail = async ({ userName, userEmail }) => {
 };
 
 export const sendOrderCreatedAdminEmail = async (orderData) => {
-    const orderId = orderData.orderId.slice(-8).toUpperCase();
+    const orderId = (orderData.orderId || '').slice(-8).toUpperCase();
     const subject = `Nuevo pedido #${orderId} - ${ENV.APP_NAME}`;
 
     const html = buildEmailWithOrderRef(orderId, `

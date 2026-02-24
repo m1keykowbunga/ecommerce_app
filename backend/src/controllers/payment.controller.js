@@ -319,6 +319,10 @@ export async function createTransferOrder(req, res) {
         const shipping = 10000;
         const total = subtotal + shipping - discount;
 
+        if (total <= 0) {
+            return res.status(400).json({ error: "Invalid order total" });
+        }
+
         const order = await Order.create({
             user: user._id,
             clerkId: user.clerkId,
