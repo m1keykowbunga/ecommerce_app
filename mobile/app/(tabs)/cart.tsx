@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAddresses } from "@/hooks/useAddresses";
 import useCart from "@/hooks/useCart";
 import { useApi } from "@/lib/api";
-import { ActivityIndicator, Alert,ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useStripe } from "@stripe/stripe-react-native";
 import { useState } from "react";
 import { Address } from "@/types";
