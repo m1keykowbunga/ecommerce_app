@@ -40,14 +40,18 @@ Desarrollar un sistema integral de comercio electrónico para la Cafetería Don 
 
 ### Stack Tecnológico Completo
 
-#### Frontend Web
-- **Lenguajes:** HTML5, CSS3, JavaScript (ES6+)
-- **Framework:** Vanilla JavaScript (posteriormente React)
-- **Diseño Responsivo:** CSS Grid, Flexbox
-- **Interactividad:** DOM Manipulation, Fetch API
-- **Conexión:** REST API
+#### Frontend Web ✅ En desarrollo activo
+- **Lenguajes:** HTML5, CSS3, JavaScript (ES6+), JSX
+- **Framework:** React 18.2.0 + Vite 5
+- **Estilos:** Tailwind CSS 3.4 + DaisyUI 4.12
+- **Estado del servidor:** @tanstack/react-query 5
+- **Enrutamiento:** React Router DOM 6
+- **Formularios:** React Hook Form + Yup
+- **HTTP / Auth:** Axios + Clerk (`@clerk/clerk-react`)
+- **Pagos:** Stripe (`@stripe/react-stripe-js`)
+- **UI:** React Icons, React Toastify
 
-#### Frontend Mobile
+#### Frontend Mobile ⚠️ Planificado — no iniciado aún
 - **Framework:** React Native / Android nativo
 - **Lenguaje:** JavaScript/JSX
 - **Gestión de Estado:** React Hooks, Context API
@@ -59,7 +63,7 @@ Desarrollar un sistema integral de comercio electrónico para la Cafetería Don 
 - **Lenguaje:** JavaScript
 - **Arquitectura:** MVC (Modelo-Vista-Controlador)
 - **API:** REST con documentación Swagger
-- **Autenticación:** JWT (JSON Web Tokens)
+- **Autenticación:** Clerk (gestión externa de usuarios) + JWT para protección de endpoints
 - **Validación:** Express Validator
 
 #### Base de Datos
@@ -86,81 +90,43 @@ Desarrollar un sistema integral de comercio electrónico para la Cafetería Don 
 ## 📦 Estructura del Proyecto
 
 ```
-don-palito-jr/
-├── client-web/              # Frontend Web
-│   ├── index.html
-│   ├── css/
-│   │   ├── styles.css
-│   │   ├── responsive.css
-│   │   └── components/
-│   ├── js/
-│   │   ├── app.js
-│   │   ├── api/             # Llamadas a API
-│   │   ├── components/      # Componentes JS
-│   │   ├── utils/           # Utilidades
-│   │   └── config.js
-│   └── assets/
-│       ├── images/
-│       └── icons/
-│
-├── client-mobile/           # Frontend Mobile (React/Android)
+donpalitojrweb/
+├── web/                          # Frontend Web — React + Vite (Jair)
 │   ├── src/
+│   │   ├── assets/               # Imágenes, logos
 │   │   ├── components/
-│   │   ├── screens/
-│   │   ├── navigation/
-│   │   ├── services/        # API calls
-│   │   ├── context/
-│   │   └── utils/
-│   └── package.json
-│
-├── server/                  # Backend Node.js/Express
-│   ├── src/
-│   │   ├── models/          # Modelos Mongoose
-│   │   │   ├── User.js
-│   │   │   ├── Product.js
-│   │   │   ├── Order.js
-│   │   │   ├── Review.js
-│   │   │   └── Promotion.js
-│   │   ├── routes/          # Rutas API
-│   │   │   ├── auth.routes.js
-│   │   │   ├── products.routes.js
-│   │   │   ├── orders.routes.js
-│   │   │   ├── reviews.routes.js
-│   │   │   └── admin.routes.js
-│   │   ├── controllers/     # Controladores
-│   │   │   ├── authController.js
-│   │   │   ├── productController.js
-│   │   │   ├── orderController.js
-│   │   │   └── adminController.js
-│   │   ├── middleware/      # Middlewares
-│   │   │   ├── auth.js
-│   │   │   ├── validation.js
-│   │   │   └── errorHandler.js
-│   │   ├── config/
-│   │   │   ├── database.js
-│   │   │   └── jwt.js
-│   │   ├── utils/
-│   │   └── server.js
+│   │   │   ├── common/           # Button, Badge, Loading…
+│   │   │   ├── layout/           # Navbar, Footer
+│   │   │   ├── products/         # ProductCard
+│   │   │   └── checkout/         # StripeCheckoutForm, PaymentMethodSelector…
+│   │   ├── contexts/             # AuthContext, CartContext
+│   │   ├── data/                 # mockData.js (productos mock mientras backend)
+│   │   ├── hooks/                # useProducts, useProduct, useServerCart
+│   │   ├── pages/
+│   │   │   ├── Home.jsx
+│   │   │   ├── Catalog.jsx
+│   │   │   ├── ProductDetail.jsx
+│   │   │   ├── Cart.jsx
+│   │   │   ├── auth/             # Login, Register, ForgotPassword, PostLogin
+│   │   │   ├── checkout/         # Checkout, CheckoutSuccess
+│   │   │   ├── profile/          # Profile, Orders, OrderDetail, Wishlist
+│   │   │   └── info/             # About, Contact, Terms, Privacy, Cookies
+│   │   ├── services/             # api.js, productService, orderService, cartService…
+│   │   ├── styles/               # globals.css (Tailwind + animaciones)
+│   │   ├── utils/                # constants.js, productHelpers.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── docs/                     # Documentación específica del frontend
+│   │   ├── CHANGELOG.md
+│   │   └── contexto-don-palito-jr.md
+│   ├── .env                      # Variables de entorno (no subir a git)
 │   ├── package.json
-│   └── .env.example
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── postcss.config.js
 │
-├── docs/                    # Documentación
-│   ├── propuesta-tecnica.docx
-│   ├── diagramas/
-│   │   ├── arquitectura.png
-│   │   ├── paquetes.png
-│   │   ├── casos-uso.puml
-│   │   ├── clases.puml
-│   │   └── secuencia.puml
-│   ├── manuales/
-│   │   ├── manual-usuario.md
-│   │   └── manual-tecnico.md
-│   └── api/
-│       └── swagger.yaml
-│
-├── scripts/                 # Scripts de utilidad
-├── .gitignore
-└── README.md
+└── (backend en repositorio separado — compañeros de equipo)
+    # Node.js + Express + MongoDB + Clerk + Inngest + Stripe
 ```
 
 ---
@@ -361,9 +327,10 @@ don-palito-jr/
 - ✅ Historial de pedidos
 
 #### Sistema de Pagos
-- ✅ Pago mediante código QR
-- ✅ Confirmación de pago
-- ✅ Generación de comprobante
+- ⏳ Pago con tarjeta mediante Stripe (en progreso — Fase 5)
+- ❌ Pago QR Nequi/Daviplata (pendiente integración backend)
+- ❌ Transferencia bancaria (pendiente integración backend)
+- ❌ Confirmación y comprobante de pago (pendiente backend)
 
 #### Promociones y Descuentos
 - ✅ Visualización de promociones activas
@@ -425,25 +392,24 @@ don-palito-jr/
 ### Servicios de Seguridad
 
 #### Autenticación
-- ✅ Registro seguro con validación
-- ✅ Login con JWT
-- ✅ Tokens de acceso y refresh
-- ✅ Recuperación de contraseña
-- ✅ Preguntas de seguridad
+- ✅ Registro y login mediante **Clerk** (gestión externa de identidad)
+- ✅ Login social (Google, Apple) desde el frontend
+- ⏳ Activar login Email/Password en Clerk dashboard (pendiente)
+- ✅ Recuperación de contraseña vía Clerk
+- ✅ Rutas protegidas con `ProtectedRoute` en el frontend
 
 #### Autorización
-- ✅ Control de acceso basado en roles
-- ✅ Validación de permisos
-- ✅ Rutas protegidas
-- ✅ Middleware de autenticación
+- ✅ Control de acceso basado en roles (Clerk + backend)
+- ✅ Validación de permisos en middleware del backend
+- ✅ Rutas protegidas (frontend y backend)
+- ✅ Token Clerk enviado en cabecera `Authorization` via Axios interceptor
 
 #### Protección
-- ✅ Encriptación de contraseñas (bcrypt)
-- ✅ Validación de datos de entrada
-- ✅ Prevención de inyecciones SQL/NoSQL
+- ✅ Contraseñas gestionadas por Clerk (sin almacenamiento local)
+- ✅ Validación de datos de entrada (Express Validator)
+- ✅ Prevención de inyecciones NoSQL
 - ✅ Rate limiting
-- ✅ Bloqueo por intentos fallidos
-- ✅ Registro de actividad sospechosa
+- ✅ Variables de entorno para todas las claves sensibles
 
 ---
 
@@ -512,33 +478,43 @@ don-palito-jr/
 ---
 
 ## 📊 Estado Actual del Proyecto
+> Última revisión: 23 de febrero de 2026
 
-### Fase de Análisis y Diseño
-- [x] Propuesta técnica elaborada
-- [x] Requisitos funcionales definidos
-- [x] Modelo de datos diseñado
-- [x] Stack tecnológico seleccionado
-- [ ] Prototipos en Figma
-- [ ] Diagramas UML completos
+### ✅ Completado — Frontend Web (React + Vite)
+- [x] Entorno configurado: Vite 5 + Tailwind CSS 3.4 + DaisyUI 4.12
+- [x] Autenticación Clerk integrada (`ClerkProvider`, `useAuth`, interceptor Axios)
+- [x] React Query configurado con token Clerk
+- [x] Todas las páginas UI implementadas:
+  - Home, Catálogo, Detalle de Producto
+  - Carrito, Checkout (UI stepper 3 pasos)
+  - Login, Registro, Recuperar Contraseña
+  - Perfil, Mis Pedidos, Detalle Pedido, Wishlist
+  - 404, Contacto, Sobre Nosotros, Términos, Privacidad, Cookies
+- [x] CartContext dual: local (invitado) → servidor (autenticado) con transferencia automática
+- [x] Hooks: `useProducts`, `useProduct`, `useServerCart`
+- [x] Estructura dual Mock/Real para productos mientras backend esté listo
 
-### En Desarrollo
-- [ ] Configuración del entorno de desarrollo
-- [ ] Estructura base del proyecto
-- [ ] Modelos Mongoose
-- [ ] API REST básica
-- [ ] Autenticación JWT
-- [ ] Frontend web inicial
+### ⏳ En Progreso — Frontend Web
+- [ ] Fase 5: Integración Checkout real (Stripe + órdenes backend + WhatsApp)
 
-### Pendiente
-- [ ] CRUD completo de productos
-- [ ] Sistema de carrito de compras
-- [ ] Gestión de pedidos
+### ❌ Pendiente — Frontend Web
+- [ ] Fase 6: Direcciones y Wishlist conectadas al backend real
+- [ ] Fase 7: Reseñas de productos con backend
+- [ ] Fase 8: Redirect al panel admin (app externa)
+
+### ⏳ Pendiente — Integración con backend (para reunión de equipo)
+- [ ] Activar Email/Password en Clerk dashboard (Configure → User & Authentication)
+- [ ] Configurar ngrok + webhook Clerk → Inngest → creación de usuario en MongoDB
+- [ ] Actualizar `STRIPE_WEBHOOK_SECRET` en `.env` del backend
+
+### 🔄 Pendiente — Backend (compañeros de equipo)
+- [ ] Modelos Mongoose (User, Product, Order, Review, Promotion)
+- [ ] API REST completa y documentada (Swagger)
 - [ ] Panel administrativo
 - [ ] Sistema de reseñas
 - [ ] Reportes y estadísticas
 - [ ] Aplicación móvil
 - [ ] Testing completo
-- [ ] Documentación de API (Swagger)
 - [ ] Despliegue en producción
 
 ---
@@ -786,28 +762,28 @@ git commit -m "docs(api): actualizar documentación de swagger"
 
 ## 🔄 Próximos Pasos Inmediatos
 
-### Semana 1-2
-- [ ] Configurar repositorio GitHub
-- [ ] Crear estructura de carpetas del proyecto
-- [ ] Configurar entorno de desarrollo (Node.js, MongoDB)
-- [ ] Inicializar proyecto con npm
-- [ ] Crear diseños en Figma
-- [ ] Elaborar diagramas UML
+### Frontend Web — Fase 5 (Jair)
+- [ ] Conectar Checkout con `orderService` real del backend
+- [ ] Integrar Stripe (PaymentIntent + StripeCheckoutForm)
+- [ ] Validar cupones mediante `couponService`
+- [ ] Notificación por WhatsApp al confirmar pedido
 
-### Semana 3-4
-- [ ] Configurar Express server básico
-- [ ] Conectar a MongoDB Atlas
-- [ ] Crear modelos Mongoose iniciales
-- [ ] Implementar autenticación JWT
-- [ ] Crear rutas de autenticación
-- [ ] Frontend: estructura HTML/CSS básica
+### Integración Backend — Reunión de equipo
+- [ ] Activar Email/Password en Clerk dashboard
+- [ ] Configurar ngrok + webhook `user.created` → Inngest → MongoDB
+- [ ] Actualizar `STRIPE_WEBHOOK_SECRET` en `.env` del backend
+- [ ] Verificar endpoints: productos, carrito, órdenes, direcciones
 
-### Semana 5-6
-- [ ] CRUD completo de productos
-- [ ] Sistema de imágenes
-- [ ] Catálogo de productos (frontend)
-- [ ] Filtros y búsqueda
-- [ ] Vista detallada de producto
+### Backend — Compañeros de equipo
+- [ ] API REST completa documentada con Swagger
+- [ ] Panel administrativo
+- [ ] Sistema de reseñas
+- [ ] Reportes y estadísticas
+
+### General
+- [ ] Testing end-to-end
+- [ ] Despliegue en producción
+- [ ] Capacitación a propietarios
 
 ---
 
@@ -854,15 +830,32 @@ git commit -m "docs(api): actualizar documentación de swagger"
 }
 ```
 
-#### Frontend Mobile
+#### Frontend Web (instalado en `web/`)
 ```json
 {
-  "react": "18.2.0",
-  "react-native": "0.72.0",
-  "react-navigation": "^6.0.0",
-  "axios": "^1.4.0",
-  "@react-native-async-storage/async-storage": "^1.18.0"
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "@clerk/clerk-react": "^5.60.1",
+  "@clerk/localizations": "^3.35.4",
+  "@tanstack/react-query": "^5.90.21",
+  "@stripe/react-stripe-js": "^5.6.0",
+  "@stripe/stripe-js": "^8.7.0",
+  "react-router-dom": "^6.30.3",
+  "react-hook-form": "^7.71.1",
+  "@hookform/resolvers": "^3.10.0",
+  "yup": "^1.7.1",
+  "axios": "^1.13.5",
+  "react-icons": "^4.12.0",
+  "react-toastify": "^9.1.3",
+  "tailwindcss": "^3.4.19",
+  "daisyui": "^4.12.24",
+  "vite": "^5.0.0"
 }
+```
+
+#### Frontend Mobile ⚠️ No iniciado — dependencias a definir
+```
+Planificado: React Native + React Navigation + Axios
 ```
 
 ---
@@ -871,7 +864,7 @@ git commit -m "docs(api): actualizar documentación de swagger"
 
 ### Desarrolladores
 - **Andrea Arcila Cano** - Desarrollo Frontend/UX
-- **Jair González Buelvas** - Desarrollo Backend/Base de Datos
+- **Jair González Buelvas** - Desarrollo Frontend Web (React + Vite)
 - **Maicol Estiven Córdoba** - Desarrollo Mobile/Testing
 
 ### Cliente
@@ -941,75 +934,60 @@ El proyecto será considerado exitoso cuando:
 
 ---
 
-**Última actualización:** 14 de febrero de 2026  
-**Versión del documento:** 2.0 (Actualizado con stack JavaScript/React/MongoDB)  
+**Última actualización:** 23 de febrero de 2026
+**Versión del documento:** 3.0 (Actualizado al estado real del proyecto — Frontend Web Fase 5)
 **Mantenido por:** Equipo de Desarrollo Don Palito Jr.
 
 ---
 
 ## 🚀 Comandos Útiles
 
-### Iniciar el proyecto
+### Frontend Web
 
 ```bash
-# Clonar repositorio
-git clone <url-repositorio>
-cd don-palito-jr
+# Clonar repositorio y entrar al frontend
+git clone https://github.com/DarkerJB/donpalitojrweb.git
+cd donpalitojrweb/web
 
-# Instalar dependencias del backend
-cd server
+# Instalar dependencias
 npm install
 
-# Instalar dependencias del frontend web
-cd ../client-web
-npm install
-
-# Instalar dependencias mobile
-cd ../client-mobile
-npm install
-```
-
-### Desarrollo
-
-```bash
-# Iniciar servidor backend (con nodemon)
-cd server
+# Iniciar servidor de desarrollo (Vite)
 npm run dev
+# → http://localhost:5173
 
-# Iniciar frontend web
-cd client-web
-npm start
+# Build para producción
+npm run build
 
-# Iniciar app mobile
-cd client-mobile
-npm run android  # o npm run ios
+# Previsualizar build
+npm run preview
 ```
 
-### Base de Datos
+### Variables de entorno necesarias (`web/.env`)
 
 ```bash
-# Conectar a MongoDB local
-mongosh
-
-# Importar datos de ejemplo
-mongoimport --db donpalito --collection products --file seed/products.json
-
-# Backup de producción
-mongodump --uri="mongodb+srv://..." --out=backup/
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...      # Clave pública de Clerk (app del equipo)
+VITE_API_URL=http://localhost:3000           # URL del backend
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...     # Clave pública de Stripe
+VITE_ADMIN_URL=http://localhost:5174        # URL del panel admin (app separada)
 ```
 
-### Testing
+### Reiniciar servidor de desarrollo (Google Antigravity)
+
+```
+h + Enter   → detener
+q + Enter   → salir
+npm run dev → reiniciar
+```
+
+### Backend (repositorio de compañeros)
 
 ```bash
-# Tests del backend
-cd server
-npm test
-
-# Tests de integración
-npm run test:integration
-
-# Coverage
-npm run test:coverage
+# Ver repositorio backend — contactar a Andrea o Maicol
+# Requiere Node.js + MongoDB Atlas configurado
+# Exponer con ngrok para webhooks de Clerk en desarrollo local
+ngrok http 3000
+# Luego configurar webhook en Clerk Dashboard → https://<ngrok-url>/api/webhooks/clerk
 ```
 
 ---

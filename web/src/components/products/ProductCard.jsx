@@ -17,7 +17,7 @@ const ProductCard = ({ product }) => {
           <img
             src={getProductImage(product)}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-110"
           />
           {!isAvailable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">

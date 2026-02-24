@@ -5,37 +5,56 @@
 // Configuración de paginación
 export const ITEMS_PER_PAGE = parseInt(import.meta.env.VITE_ITEMS_PER_PAGE) || 12;
 
-// Estados de pedidos
+// Estados de pedidos — valores en inglés (backend) con aliases en español (legacy)
 export const ORDER_STATUS = {
-  PENDING: 'pendiente',
-  PAID: 'pagado',
-  REJECTED: 'rechazado',
-  IN_PREPARATION: 'en_preparacion',
-  READY: 'listo',
-  DELIVERED: 'entregado',
-  CANCELED: 'cancelado',
+  PENDING: 'pending',
+  PAID: 'paid',
+  REJECTED: 'rejected',
+  IN_PREPARATION: 'in_preparation',
+  READY: 'ready',
+  DELIVERED: 'delivered',
+  CANCELED: 'canceled',
 };
 
-// Colores de estados de pedidos (para badges)
+// Colores de estados — hex exactos igual que mobile (getOrderStatus en lib/utils.ts)
+// Incluye aliases en español para compatibilidad con datos legacy
 export const ORDER_STATUS_COLORS = {
-  [ORDER_STATUS.PENDING]: 'warning',
-  [ORDER_STATUS.PAID]: 'info',
-  [ORDER_STATUS.REJECTED]: 'error',
-  [ORDER_STATUS.IN_PREPARATION]: 'primary',
-  [ORDER_STATUS.READY]: 'success',
-  [ORDER_STATUS.DELIVERED]: 'success',
-  [ORDER_STATUS.CANCELED]: 'error',
+  // Inglés (backend actual)
+  pending: '#F59E0B',
+  paid: '#3B82F6',
+  rejected: '#EF4444',
+  in_preparation: '#B06A4A',
+  ready: '#10B981',
+  delivered: '#10B981',
+  canceled: '#EF4444',
+  // Español (legacy / compatibilidad)
+  pendiente: '#F59E0B',
+  pagado: '#3B82F6',
+  rechazado: '#EF4444',
+  en_preparacion: '#B06A4A',
+  listo: '#10B981',
+  entregado: '#10B981',
+  cancelado: '#EF4444',
 };
 
-// Textos de estados de pedidos
+// Textos de estados — igual que mobile
 export const ORDER_STATUS_LABELS = {
-  [ORDER_STATUS.PENDING]: 'Pendiente',
-  [ORDER_STATUS.PAID]: 'Pagado',
-  [ORDER_STATUS.REJECTED]: 'Rechazado',
-  [ORDER_STATUS.IN_PREPARATION]: 'En Preparación',
-  [ORDER_STATUS.READY]: 'Listo',
-  [ORDER_STATUS.DELIVERED]: 'Entregado',
-  [ORDER_STATUS.CANCELED]: 'Cancelado',
+  // Inglés (backend actual)
+  pending: 'Pendiente',
+  paid: 'Pagado',
+  rejected: 'Rechazado',
+  in_preparation: 'En Preparación',
+  ready: 'Listo',
+  delivered: 'Entregado',
+  canceled: 'Cancelado',
+  // Español (legacy / compatibilidad)
+  pendiente: 'Pendiente',
+  pagado: 'Pagado',
+  rechazado: 'Rechazado',
+  en_preparacion: 'En Preparación',
+  listo: 'Listo',
+  entregado: 'Entregado',
+  cancelado: 'Cancelado',
 };
 
 // Opciones de ordenamiento de productos

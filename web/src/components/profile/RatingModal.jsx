@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { IoStar, IoClose } from 'react-icons/io5';
+import { IoStar } from 'react-icons/io5';
 import { toast } from 'react-toastify';
-import { useQueryClient } from '@tanstack/react-query';
-import { reviewService } from '../../services/index';
+import useReviews from '../../hooks/useReviews';
 import { getProductId, getProductImage } from '../../utils/productHelpers';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
@@ -10,10 +9,9 @@ import Modal from '../common/Modal';
 const STAR_LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 
 const RatingModal = ({ order, onClose }) => {
-  const queryClient = useQueryClient();
+  const { createReviewAsync, isCreatingReview } = useReviews();
   const items = order?.orderItems || order?.items || [];
   const [ratings, setRatings] = useState({});
-  const [submitting, setSubmitting] = useState(false);
 
   const handleRate = (productId, rating) => {
     setRatings((prev) => ({ ...prev, [productId]: rating }));
@@ -29,25 +27,23 @@ const RatingModal = ({ order, onClose }) => {
       toast.warning('Por favor califica todos los productos');
       return;
     }
-    setSubmitting(true);
     try {
-      for (const item of items) {
-        const productId = getProductId(item.product) || item.product;
-        const rating = ratings[productId];
-        await reviewService.createReview({
-          productId,
-          orderId: order._id || order.id,
-          rating,
-        });
+      const orderId = order._id || order.id;
+      const results = await Promise.allSettled(
+        items.map((item) => {
+          const productId = getProductId(item.product) || item.product;
+          return createReviewAsync({ productId, orderId, rating: ratings[productId] });
+        })
+      );
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        toast.error(`${failures.length} calificación(es) no se enviaron`);
+        return;
       }
       toast.success('¡Gracias por tu calificación!');
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
       onClose();
     } catch {
       toast.error('Error al enviar calificación');
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -102,14 +98,14 @@ const RatingModal = ({ order, onClose }) => {
       </div>
 
       <div className="mt-6 flex justify-end gap-3">
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose} disabled={isCreatingReview}>
           Cancelar
         </Button>
         <Button
           variant="primary"
           onClick={handleSubmit}
-          loading={submitting}
-          disabled={!allRated || submitting}
+          loading={isCreatingReview}
+          disabled={!allRated || isCreatingReview}
         >
           Enviar calificación
         </Button>

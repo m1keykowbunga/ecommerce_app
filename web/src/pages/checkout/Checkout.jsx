@@ -119,7 +119,11 @@ const Checkout = () => {
         setCouponError(data.message || data.error || 'Cupón inválido o expirado');
       }
     } catch (err) {
-      setCouponError(err?.response?.data?.error || 'No se pudo validar el cupón');
+      if (err?.response?.status === 404 || !err?.response) {
+        setCouponError('Cupones no disponibles por el momento');
+      } else {
+        setCouponError(err?.response?.data?.error || 'Cupón inválido o expirado');
+      }
     } finally {
       setCouponLoading(false);
     }
@@ -159,7 +163,7 @@ const Checkout = () => {
     clearCart();
     // Pasamos el paymentIntentId; cuando el usuario vea la confirmación,
     // la orden ya existe en MongoDB creada por el webhook.
-    navigate('/checkout/exito', { state: { paymentIntentId: paymentIntent.id } });
+    navigate('/checkout/exito', { state: { paymentIntentId: paymentIntent.id, total, paymentMethod: 'tarjeta' } });
   };
 
   // Métodos no-Stripe: crear orden directamente vía POST /api/orders
@@ -174,7 +178,7 @@ const Checkout = () => {
       });
       const orderId = res?.order?._id || res?.order?.id || res?._id;
       clearCart();
-      navigate('/checkout/exito', { state: { orderId } });
+      navigate('/checkout/exito', { state: { orderId, total, paymentMethod } });
     } catch (err) {
       toast.error(err?.response?.data?.error || 'Error al crear el pedido. Intenta de nuevo.');
     } finally {
