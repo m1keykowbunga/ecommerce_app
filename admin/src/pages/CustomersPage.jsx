@@ -14,6 +14,9 @@ function CustomersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
+    onError: (error) => {
+      console.error("Failed to update customer status:", error);
+    },
   });
 
   const customers = data?.customers || [];

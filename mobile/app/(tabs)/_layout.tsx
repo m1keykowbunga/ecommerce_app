@@ -28,7 +28,8 @@ const TabsLayout = () => {
       });
   }, [isSignedIn]);
 
-  if (!isLoaded || !isVerified) return null;
+  if (!isLoaded) return null;
+  if (isSignedIn && !isVerified) return null;
   if (!isSignedIn) return <Redirect href={"/(auth)"} />;
 
   return (

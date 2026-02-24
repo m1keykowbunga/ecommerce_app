@@ -152,8 +152,6 @@ export async function updateNotificationPreferences(req, res) {
         if (emailNotifications !== undefined) updateFields.emailNotifications = emailNotifications;
         if (marketingEmails !== undefined) updateFields.marketingEmails = marketingEmails;
 
-        const previousUser = await User.findById(req.user._id);
-
         const user = await User.findByIdAndUpdate(
             req.user._id,
             updateFields,
@@ -164,7 +162,7 @@ export async function updateNotificationPreferences(req, res) {
             return res.status(404).json({ error: "User not found" });
         }
 
-        const justSubscribed = marketingEmails === true && previousUser.marketingEmails === false;
+        const justSubscribed = marketingEmails === true && req.user.marketingEmails === false;
         if (justSubscribed) {
             sendMarketingSubscriptionEmail({
                 userName: user.name,

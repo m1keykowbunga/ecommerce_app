@@ -24,9 +24,12 @@ export const protectRoute = [
             }
 
             if (!user.isActive) {
+                const adminEmail = ENV.ADMIN_EMAIL;
                 return res.status(403).json({
                     code: "ACCOUNT_INACTIVE",
-                    message: "Tu cuenta ha sido desactivada. Escríbenos a " + ENV.ADMIN_EMAIL + " para recuperarla.",
+                    message: adminEmail
+                        ? `Tu cuenta ha sido desactivada. Escríbenos a ${adminEmail} para recuperarla.`
+                        : "Tu cuenta ha sido desactivada. Contacta a soporte para recuperarla.",
                 });
             }
 

@@ -168,7 +168,7 @@ export async function updateOrderStatus (req, res) {
                                 console.error('Error enviando email:', result.reason);
                             }
                         });
-                    });
+                    }).catch(err => console.error('Unexpected email handling error:', err));
                 }
             } catch (emailError) {
                 console.error('Error en proceso de emails:', emailError.message);
