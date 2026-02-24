@@ -69,7 +69,26 @@ const userSchema = new mongoose.Schema(
         isActive: {       
             type: Boolean,
             default: true,
-        },    
+        },
+        documentType: {
+            type: String,
+            enum: ["cedula_ciudadania", "cedula_extranjeria", "pasaporte"],
+            default: null,
+        },
+        documentNumber: {
+            type: String,
+            default: "",
+            trim: true,
+        },
+        gender: {
+            type: String,
+            enum: ["masculino", "femenino", "otro"],
+            default: null,
+        },
+        dateOfBirth: {
+            type: Date,
+            default: null,
+        }    
     },
     {
         timestamps: true,

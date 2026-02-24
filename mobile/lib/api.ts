@@ -118,4 +118,21 @@ export const useApi = () => {
   return api;
 };
 
+export const userApi = {
+  getProfile: async () => {
+    const { data } = await api.get("/users/profile");
+    return data;
+  },
+
+  updateProfile: async (profileData: {
+    documentType?: "cedula_ciudadania" | "cedula_extranjeria" | null;
+    documentNumber?: string;
+    gender?: "masculino" | "femenino" | "otro" | null;
+    dateOfBirth?: string | null; // "YYYY-MM-DD"
+  }) => {
+    const { data } = await api.put("/users/profile", profileData);
+    return data;
+  },
+};
+
 export default api;
