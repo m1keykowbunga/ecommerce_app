@@ -2,64 +2,48 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
 import { getProductId } from '../utils/productHelpers';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
-const fetchWishlist = async (getToken) => {
-  const token = await getToken();
-  const res = await fetch(`${API_URL}/users/profile`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Error al cargar wishlist');
-  const data = await res.json();
-  return data.wishlist || [];
-};
-
-const toggleWishlistItem = async (productId, getToken) => {
-  const token = await getToken();
-  const res = await fetch(`${API_URL}/users/wishlist`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ productId }),
-  });
-  if (!res.ok) throw new Error('Error al actualizar wishlist');
-  return res.json();
-};
+import api from '../services/api';
 
 const useWishlist = () => {
-  const { isAuthenticated, getToken } = useAuth();
+  const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: wishlist = [], isLoading } = useQuery({
     queryKey: ['wishlist'],
-    queryFn: () => fetchWishlist(getToken),
+    queryFn: async () => {
+      const res = await api.get('/users/wishlist');
+      return res.data?.wishlist || res.data || [];
+    },
     enabled: isAuthenticated,
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: (productId) => toggleWishlistItem(productId, getToken),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
-    },
-    onError: () => toast.error('Error al actualizar favoritos'),
+  const addMutation = useMutation({
+    mutationFn: (productId) => api.post('/users/wishlist', { productId }).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wishlist'] }),
+    onError: () => toast.error('Error al agregar a favoritos'),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (productId) => api.delete(`/users/wishlist/${productId}`).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wishlist'] }),
+    onError: () => toast.error('Error al eliminar de favoritos'),
   });
 
   const isInWishlist = (product) => {
     const id = getProductId(product);
-    return wishlist.some(
-      (item) => (item._id || item.id || item) === id
-    );
+    return wishlist.some((item) => (item._id || item.id || item) === id);
   };
 
   const toggleItem = (product) => {
     const id = getProductId(product);
     if (!id) return;
-    const inList = isInWishlist(product);
-    toggleMutation.mutate(id);
-    toast.success(inList ? 'Eliminado de favoritos' : 'Agregado a favoritos');
+    if (isInWishlist(product)) {
+      removeMutation.mutate(id);
+      toast.success('Eliminado de favoritos');
+    } else {
+      addMutation.mutate(id);
+      toast.success('Agregado a favoritos');
+    }
   };
 
   return {
@@ -67,7 +51,7 @@ const useWishlist = () => {
     isLoading,
     isInWishlist,
     toggleItem,
-    isToggling: toggleMutation.isPending,
+    isToggling: addMutation.isPending || removeMutation.isPending,
   };
 };
 

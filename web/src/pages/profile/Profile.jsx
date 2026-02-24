@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { toast } from 'react-toastify';
-import { IoPersonCircle, IoLocation, IoLockClosed, IoTrash, IoAdd } from 'react-icons/io5';
+import { IoPersonCircle, IoLocation, IoLockClosed, IoTrash, IoAdd, IoReceiptOutline, IoHeartOutline } from 'react-icons/io5';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { profileSchema, changePasswordSchema } from '../../utils/validationSchemas';
-import { addressServiceMock } from '../../services/addressService';
+import useAddresses from '../../hooks/useAddresses';
 import AddressForm from '../../components/profile/AddressForm';
 import AddressCard from '../../components/profile/AddressCard';
 import Input from '../../components/common/Input';
@@ -25,9 +26,7 @@ const onlyNumbers = (e) => {
 const Profile = () => {
   const { user, updateProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('info');
-  const [addresses, setAddresses] = useState(
-    addressServiceMock.getUserAddresses(user?.id || 'u1')
-  );
+  const { addresses, createAddressAsync, updateAddressAsync, deleteAddress } = useAddresses();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -68,22 +67,24 @@ const Profile = () => {
     resetPassword();
   };
 
-  const handleAddressSubmit = (data) => {
-    if (editingAddress) {
-      addressServiceMock.updateAddress(editingAddress.id, data);
-      toast.success('Dirección actualizada');
-    } else {
-      addressServiceMock.createAddress(user?.id || 'u1', data);
-      toast.success('Dirección agregada');
+  const handleAddressSubmit = async (data) => {
+    try {
+      if (editingAddress) {
+        await updateAddressAsync({ id: editingAddress._id || editingAddress.id, data });
+        toast.success('Dirección actualizada');
+      } else {
+        await createAddressAsync(data);
+        toast.success('Dirección agregada');
+      }
+      setShowAddressModal(false);
+      setEditingAddress(null);
+    } catch {
+      toast.error('Error al guardar la dirección');
     }
-    setAddresses(addressServiceMock.getUserAddresses(user?.id || 'u1'));
-    setShowAddressModal(false);
-    setEditingAddress(null);
   };
 
   const handleDeleteAddress = (addressId) => {
-    addressServiceMock.deleteAddress(addressId);
-    setAddresses(addressServiceMock.getUserAddresses(user?.id || 'u1'));
+    deleteAddress(addressId);
     toast.success('Dirección eliminada');
   };
 
@@ -101,6 +102,41 @@ const Profile = () => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-3xl font-bold text-brand-secondary mb-6">Mi Perfil</h1>
+
+      {/* Accesos rápidos — patrón idéntico a mobile profile.tsx */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <Link
+          to="/perfil/pedidos"
+          className="flex items-center gap-3 bg-ui-surface rounded-2xl shadow-sm p-4 hover:shadow-md transition-shadow"
+        >
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: '#10B98120' }}
+          >
+            <IoReceiptOutline size={20} style={{ color: '#10B981' }} />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Mis Pedidos</p>
+            <p className="text-xs text-text-secondary">Historial de compras</p>
+          </div>
+        </Link>
+
+        <Link
+          to="/perfil/favoritos"
+          className="flex items-center gap-3 bg-ui-surface rounded-2xl shadow-sm p-4 hover:shadow-md transition-shadow"
+        >
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: '#EF444420' }}
+          >
+            <IoHeartOutline size={20} style={{ color: '#EF4444' }} />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Favoritos</p>
+            <p className="text-xs text-text-secondary">Lista de deseos</p>
+          </div>
+        </Link>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1">
