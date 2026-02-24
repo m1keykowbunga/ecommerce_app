@@ -185,7 +185,10 @@ export async function updateOrderStatus (req, res) {
 
 export async function getAllCustomers (_, res) {
     try {
-        const customers = await User.find().sort({createdAt: -1});
+        const customers = await User.find().select(
+                "name email imageUrl addresses isActive createdAt " +
+                "documentType documentNumber gender dateOfBirth"
+            ).sort({createdAt: -1});
         return res.status(200).json({ customers});
     } catch (error) {
         console.error("Error in getAllCustomers controller", error);

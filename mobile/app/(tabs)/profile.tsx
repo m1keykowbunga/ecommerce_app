@@ -7,10 +7,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 const MENU_ITEMS = [
-  { id: 1, icon: "person-outline", title: "Editar Perfil", color: "#3B82F6", action: "/profile" },
-  { id: 2, icon: "list-outline", title: "Pedidos", color: "#10B981", action: "/orders" },
-  { id: 3, icon: "location-outline", title: "Direcciones", color: "#F59E0B", action: "/addresses" },
-  { id: 4, icon: "heart-outline", title: "Lista de Deseos", color: "#EF4444", action: "/wishlist" },
+  { id: 1, icon: "person-outline", title: "Editar Perfil", color: "#3B82F6", action: "/(profile)/edit-profile" },
+  { id: 2, icon: "list-outline", title: "Pedidos", color: "#10B981", action: "/(profile)/orders" },
+  { id: 3, icon: "location-outline", title: "Direcciones", color: "#F59E0B", action: "/(profile)/addresses" },
+  { id: 4, icon: "heart-outline", title: "Lista de Deseos", color: "#EF4444", action: "/(profile)/wishlist" },
 ] as const;
 
 const ProfileScreen = () => {
@@ -18,7 +18,6 @@ const ProfileScreen = () => {
   const { user } = useUser();
 
   const handleMenuPress = (action: (typeof MENU_ITEMS)[number]["action"]) => {
-    if (action === "/profile") return;
     router.push(action);
   };
 
@@ -79,7 +78,7 @@ const ProfileScreen = () => {
           <TouchableOpacity
             className="flex-row items-center justify-between py-2"
             activeOpacity={0.7}
-            onPress={() => router.push("/privacy-security")}
+            onPress={() => router.push("/(profile)/privacy-security")}
           >
             <View className="flex-row items-center">
               <Ionicons name="shield-checkmark-outline" size={22} color="#333333" />

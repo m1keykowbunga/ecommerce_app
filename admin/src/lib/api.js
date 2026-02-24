@@ -51,6 +51,10 @@ export const customerApi = {
         const { data } = await axiosInstance.patch(`/admin/customers/${customerId}/status`, { isActive });
         return data;
     },
+    getCustomer: async (customerId) => {
+        const { data } = await axiosInstance.get(`/admin/customers/${customerId}`);
+        return data;
+    }
 };
 
 export const couponApi = {
