@@ -1,13 +1,13 @@
+console.log("🔍 Mi URL de API es:", import.meta.env.VITE_API_URL);
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+// En src/services/api.js o donde configures Axios
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
+    'ngrok-skip-browser-warning': 'true' // <--- ESTO ES VITAL
+  }
 });
 
 // ─── Singleton para getToken de Clerk ────────────────────────────────────────
