@@ -220,7 +220,7 @@ export async function updateProfile(req, res) {
     try {
         const { documentType, documentNumber, gender, dateOfBirth } = req.body;
 
-        const VALID_DOCUMENT_TYPES = ["cedula_ciudadania", "cedula_extranjeria", "pasaporte"];
+        const VALID_DOCUMENT_TYPES = ["cedula_ciudadania", "cedula_extranjeria"];
         const VALID_GENDERS = ["masculino", "femenino", "otro"];
 
         if (documentType && !VALID_DOCUMENT_TYPES.includes(documentType)) {

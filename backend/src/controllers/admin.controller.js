@@ -8,6 +8,7 @@ import { generateInvoicePDF, generateInvoiceCSV } from "../services/invoice.serv
 const inferPaymentMethod = (paymentResultId = "") => {
     if (paymentResultId.startsWith("pi_"))       return "stripe";
     if (paymentResultId.startsWith("transfer_")) return "transferencia";
+    if (paymentResultId) console.warn(`inferPaymentMethod: unrecognized paymentResultId prefix: ${paymentResultId}`);
     return "transferencia";
 };
 
@@ -201,8 +202,8 @@ export async function updateOrderStatus (req, res) {
                                     },
                                 };
 
-                                const year = (order.paidAt || new Date()).getFullYear();
-                                const suffix = order._id.toString().slice(-8).toUpperCase();
+                                const year = invoiceData.date.getFullYear();
+                                const suffix = invoiceData.orderId.slice(-8).toUpperCase();
                                 const invoiceNumber = `FV-${year}-${suffix}`;
 
                                 const pdfBuffer  = await generateInvoicePDF(invoiceData);

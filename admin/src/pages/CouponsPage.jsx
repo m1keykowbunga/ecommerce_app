@@ -57,7 +57,7 @@ export default function CouponsPage() {
             discountType: coupon.discountType,
             discountValue: coupon.discountValue,
             expiresAt: coupon.expiresAt
-                ? new Date(coupon.expiresAt).toISOString().split("T")[0]
+                ? new Date(coupon.expiresAt).toLocaleDateString("es-CO")
                 : "",
         });
         setEditingId(coupon._id);
@@ -79,7 +79,7 @@ export default function CouponsPage() {
             code: form.code.toUpperCase().trim(),
             discountType: form.discountType,
             discountValue: Number(form.discountValue),
-            expiresAt: form.expiresAt ? new Date(form.expiresAt + "T23:59:59") : null,
+            expiresAt: form.expiresAt ? new Date(form.expiresAt + "T23:59:59Z") : null,
         };
         if (editingId) {
             updateMutation.mutate({ id: editingId, ...payload });
