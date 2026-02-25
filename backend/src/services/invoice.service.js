@@ -15,6 +15,11 @@ const SELLER = {
     logoUrl:  ENV.LOGO_URL        || null,
 };
 
+const PAYMENT_LABELS = {
+    stripe:        "Tarjeta de crédito",
+    transferencia: "Transferencia bancaria",
+};
+
 function formatCOP(value) {
     return `$${Number(value).toLocaleString("es-CO")} COP`;
 }
@@ -28,7 +33,7 @@ export async function generateInvoicePDF(invoiceData) {
     return new Promise(async (resolve, reject) => {
         try {
             const {
-                orderId, date, items, shipping, discount = 0,
+                orderId, date, paymentMethod, items, shipping, discount = 0,
                 customer: { name, documentType, documentNumber, email, phone, address, city },
             } = invoiceData;
 
@@ -112,13 +117,14 @@ export async function generateInvoicePDF(invoiceData) {
             sectionHeader("DATOS DE LA FACTURA", colLeft,  halfW);
             sectionHeader("DATOS DEL CLIENTE",   colRight, halfW);
             y += 22;
-
+            
             const metaRows = [
                 ["N° Factura:", invoiceNumber],
                 ["Fecha:",      dateStr],
                 ["Pedido:",     `#${orderId.toString().slice(-8).toUpperCase()}`],
-                ["Pago:",       "Contado"],
+                ["Pago:",       PAYMENT_LABELS[paymentMethod] || paymentMethod || "—"],
             ];
+
             const clientRows = [
                 ["Cliente:",    name],
                 [`${docLabel}:`, documentNumber || "—"],
@@ -244,13 +250,14 @@ export async function generateInvoicePDF(invoiceData) {
 
 export function generateInvoiceCSV(invoiceData) {
     const {
-        orderId, date, items, shipping, discount = 0,
+        orderId, date, paymentMethod, items, shipping, discount = 0,
         customer: { name, documentType, documentNumber, email, phone, address, city },
     } = invoiceData;
 
     const invoiceNumber = generateInvoiceNumber(orderId, date);
     const dateStr       = date.toLocaleDateString("es-CO");
     const docLabel      = documentType === "cedula_extranjeria" ? "C.E." : "C.C.";
+    const paymentLabel  = PAYMENT_LABELS[paymentMethod] || paymentMethod || "—";
 
     let subtotal = 0;
     const rows = items.map(item => {
@@ -263,6 +270,7 @@ export function generateInvoiceCSV(invoiceData) {
             factura:          invoiceNumber,
             fecha:            dateStr,
             pedido:           orderId.toString().slice(-8).toUpperCase(),
+            pago:             paymentLabel,
             cliente:          name,
             documento:        `${docLabel} ${documentNumber || "—"}`,
             email_cliente:    email,
@@ -296,6 +304,7 @@ export function generateInvoiceCSV(invoiceData) {
             { id: "factura",          title: "N° Factura"         },
             { id: "fecha",            title: "Fecha"               },
             { id: "pedido",           title: "Pedido"              },
+            { id: "pago",             title: "Método de Pago"      },
             { id: "cliente",          title: "Cliente"             },
             { id: "documento",        title: "Documento"           },
             { id: "email_cliente",    title: "Email"               },

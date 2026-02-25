@@ -195,13 +195,14 @@ const buildFullOrderDetail = (orderData) => `
     <p style="margin:0;font-size:13px;color:#555555;">${orderData.paymentMethod}</p>` : ''}
 `;
 
-export const sendEmail = async ({ to, subject, html }) => {
+export const sendEmail = async ({ to, subject, html, attachments = [] }) => {
     try {
         const info = await transporter.sendMail({
             from: `"${ENV.APP_NAME}" <${ENV.ADMIN_EMAIL}>`,
             to,
             subject,
             html,
+            ...(attachments && attachments.length > 0 && { attachments }),
         });
         console.log(`Email enviado a ${to}: ${info.messageId}`);
         return { success: true, messageId: info.messageId };
@@ -352,54 +353,60 @@ export const sendMarketingSubscriptionEmail = async ({ userName, userEmail }) =>
     ]);
 };
 
-export const sendInvoiceClientEmail = async ({ userName, userEmail, orderId, pdfBuffer, invoiceNumber }) => {
-    const subject = `Tu factura ${invoiceNumber} - ${ENV.APP_NAME}`;
-    const html = buildEmail(`
-        <h2 style="margin:0 0 12px;font-size:22px;color:#222222;">Tu Factura de Compra</h2>
-        <p style="margin:0 0 20px;font-size:14px;color:#555555;line-height:1.7;">
-            Adjunto encontrarás la factura correspondiente a tu pedido <strong>#${orderId.toString().slice(-8).toUpperCase()}</strong>.
-        </p>
-        <p style="margin:0 0 20px;font-size:14px;color:#555555;line-height:1.7;">
-            El documento incluye el detalle de los productos adquiridos, el IVA del 19% incluido en los precios y el valor total de la compra.
-        </p>
-        ${divider()}
-        <p style="margin:0;font-size:12px;color:#aaaaaa;line-height:1.7;">
-            Si tienes alguna pregunta sobre tu factura escríbenos a <a href="mailto:${ENV.ADMIN_EMAIL}" style="color:#C34928;">${ENV.ADMIN_EMAIL}</a>.
-        </p>
-    `);
+export const sendInvoiceEmails = async ({ userName, userEmail, orderId, invoiceNumber, pdfBuffer, csvContent, emailNotifications }) => {
+    const orderIdShort = orderId.toString().slice(-8).toUpperCase();
 
-    return sendEmail({
+    const clientPromise = emailNotifications ? sendEmail({
         to: userEmail,
-        subject,
-        html,
+        subject: `¡Pedido Confirmado! #${orderIdShort} - ${ENV.APP_NAME}`,
+        html: buildEmailWithOrderRef(orderIdShort, `
+            <h2 style="margin:0 0 12px;font-size:22px;color:#222222;">¡Pedido Confirmado!</h2>
+            <p style="margin:0 0 16px;font-size:14px;color:#555555;line-height:1.7;">
+                Tu pago ha sido procesado exitosamente. Estamos preparando tu pedido.
+            </p>
+            <p style="margin:0 0 20px;font-size:14px;color:#555555;line-height:1.7;">
+                Adjunto encontrarás tu factura <strong>${invoiceNumber}</strong> con el detalle completo de la compra, incluyendo el IVA del 19% incluido en los precios.
+            </p>
+            ${divider()}
+            <p style="margin:0;font-size:12px;color:#aaaaaa;line-height:1.7;">
+                Para consultas sobre tu factura escríbenos a <a href="mailto:${ENV.ADMIN_EMAIL}" style="color:#C34928;">${ENV.ADMIN_EMAIL}</a>.
+            </p>
+        `),
         attachments: [{
             filename: `${invoiceNumber}.pdf`,
             content: pdfBuffer,
             contentType: "application/pdf",
         }],
-    });
-};
+    }) : Promise.resolve({ success: true, skipped: true });
 
-export const sendInvoiceAdminEmail = async ({ orderId, invoiceNumber, csvContent }) => {
-    const subject = `Nueva factura ${invoiceNumber} - ${ENV.APP_NAME}`;
-    const html = buildEmail(`
-        <h2 style="margin:0 0 12px;font-size:22px;color:#222222;">Nueva Factura Generada</h2>
-        <p style="margin:0 0 20px;font-size:14px;color:#555555;line-height:1.7;">
-            Se ha generado la factura <strong>${invoiceNumber}</strong> para el pedido <strong>#${orderId.toString().slice(-8).toUpperCase()}</strong>.
-        </p>
-        <p style="margin:0;font-size:14px;color:#555555;line-height:1.7;">
-            Adjunto encontrarás el archivo CSV con el detalle completo de la factura.
-        </p>
-    `);
-
-    return sendEmail({
+    const adminPromise = sendEmail({
         to: ENV.ADMIN_EMAIL,
-        subject,
-        html,
-        attachments: [{
-            filename: `${invoiceNumber}.csv`,
-            content: Buffer.from(csvContent, "utf-8"),
-            contentType: "text/csv",
-        }],
+        subject: `Pedido pagado #${orderIdShort} — Factura ${invoiceNumber} - ${ENV.APP_NAME}`,
+        html: buildEmailWithOrderRef(orderIdShort, `
+            <h2 style="margin:0 0 12px;font-size:22px;color:#222222;">Nuevo Pago Confirmado</h2>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:4px;">
+                <tr><td style="padding:6px 0;font-size:14px;color:#888;width:120px;">Factura</td><td style="font-size:14px;font-weight:600;color:#222;">${invoiceNumber}</td></tr>
+                <tr><td style="padding:6px 0;font-size:14px;color:#888;">Cliente</td><td style="font-size:14px;color:#222;">${userName}</td></tr>
+                <tr><td style="padding:6px 0;font-size:14px;color:#888;">Email</td><td style="font-size:14px;color:#222;">${userEmail}</td></tr>
+            </table>
+            ${divider()}
+            <p style="margin:0;font-size:13px;color:#555555;line-height:1.7;">
+                Adjunto encontrarás la factura en PDF y el registro en CSV.
+            </p>
+        `),
+        attachments: [
+            {
+                filename: `${invoiceNumber}.pdf`,
+                content: pdfBuffer,
+                contentType: "application/pdf",
+            },
+            {
+                filename: `${invoiceNumber}.csv`,
+                content: Buffer.from(csvContent, "utf-8"),
+                contentType: "text/csv",
+            },
+        ],
     });
+
+    return Promise.allSettled([clientPromise, adminPromise]);
 };
