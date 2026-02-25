@@ -1,6 +1,8 @@
 import PDFDocument from "pdfkit";
 import { createObjectCsvStringifier } from "csv-writer";
 import { ENV } from "../config/env.js";
+import https from "https";
+import http  from "http";
 
 const IVA_RATE = 0.19;
 
@@ -61,22 +63,23 @@ export async function generateInvoicePDF(invoiceData) {
             let logoLoaded = false;
             if (SELLER.logoUrl) {
                 try {
-                    const https  = await import("https");
-                    const http   = await import("http");
                     const client = SELLER.logoUrl.startsWith("https") ? https : http;
 
                     const logoBuffer = await new Promise((res2, rej2) => {
-                        client.default.get(SELLER.logoUrl, response => {
+                        const req = client.default.get(SELLER.logoUrl, response => {
                             const imgChunks = [];
                             response.on("data",  c  => imgChunks.push(c));
                             response.on("end",   ()  => res2(Buffer.concat(imgChunks)));
                             response.on("error", err => rej2(err));
-                        }).on("error", rej2);
+                        });
+                        req.setTimeout(5000, () => { req.destroy(); rej2(new Error("Logo fetch timeout")); });
+                        req.on("error", rej2);
                     });
 
                     doc.image(logoBuffer, LEFT, 45, { fit: [160, 60], align: "left", valign: "center" });
                     logoLoaded = true;
-                } catch (_) {
+                } catch (err) {
+                    console.warn("Invoice PDF: could not load logo, using text fallback:", err.message);
                 }
             }
 
@@ -193,7 +196,7 @@ export async function generateInvoicePDF(invoiceData) {
             });
 
             y += 12;
-            const total  = subtotal + shipping - discount;
+            const total  = Math.max(0, subtotal + shipping - discount);
             const tBase  = Math.round(total / (1 + IVA_RATE));
             const tIva   = total - tBase;
             const tRight = LEFT + W;
