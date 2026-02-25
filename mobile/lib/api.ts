@@ -58,12 +58,16 @@ export const useApi = () => {
           const skipCache = config.headers['X-Retry-Request'] === 'true';
 
           const token = await getToken({
-            template: "mobile-app-token",
+            template: "app-jwt",
             skipCache
           });
 
+          
+
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            console.log(`URL: ${config.baseURL}${config.url}`);
+            console.log("Token:", token);
           }
         } catch (error) {
           console.error("Error obteniendo token:", error);
