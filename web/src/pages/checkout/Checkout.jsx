@@ -6,9 +6,10 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { addressService, orderService, couponService, paymentService } from '../../services/index';
+import { addressService, couponService, paymentService } from '../../services/index';
 import { IVA_RATE } from '../../utils/constants';
 import { formatCurrency } from '../../utils/formatters';
+import { getProductImage } from '../../utils/productHelpers';
 import CheckoutStepper from '../../components/checkout/CheckoutStepper';
 import PaymentMethodSelector from '../../components/checkout/PaymentMethodSelector';
 import StripeCheckoutForm from '../../components/checkout/StripeCheckoutForm';
@@ -68,7 +69,7 @@ const Checkout = () => {
   }, [preselectedMethod]);
 
   // Calcular totales
-  const discount = couponData ? Math.round(subtotal * couponData.discountPercent / 100) : 0;
+  const discount = couponData?.discountAmount ?? 0;
   const discountedSubtotal = subtotal - discount;
   const iva = Math.round(discountedSubtotal * IVA_RATE / (1 + IVA_RATE));
   const baseWithoutIva = discountedSubtotal - iva;
@@ -81,17 +82,6 @@ const Checkout = () => {
   }
 
   // --- Helpers ---
-
-  // Construye los orderItems en el formato exacto que espera POST /api/orders
-  const buildOrderItems = () =>
-    items.map((i) => ({
-      product: { _id: i.product._id || i.product.id },
-      name: i.product.name,
-      price: i.product.discount
-        ? Math.round(i.product.price * (1 - i.product.discount / 100))
-        : i.product.price,
-      quantity: i.quantity,
-    }));
 
   // Construye los cartItems para POST /api/payment/create-intent
   const buildCartItems = () =>
@@ -110,11 +100,20 @@ const Checkout = () => {
     setCouponLoading(true);
     setCouponError('');
     try {
-      const data = await couponService.validate(couponCode.trim().toUpperCase());
-      const pct = data.discountPercent ?? data.discountValue ?? data.discount;
-      if (pct && data.valid !== false) {
-        setCouponData({ discountPercent: pct, description: data.description || couponCode });
-        toast.success(`Cupón aplicado: ${pct}% de descuento`);
+      const data = await couponService.validate(couponCode.trim().toUpperCase(), subtotal);
+      if (data.discountAmount != null) {
+        const coupon = data.coupon || {};
+        const label = coupon.discountType === 'percentage'
+          ? `${coupon.discountValue}% de descuento`
+          : formatCurrency(coupon.discountValue ?? data.discountAmount);
+        setCouponData({
+          discountAmount: data.discountAmount,
+          discountType: coupon.discountType,
+          discountValue: coupon.discountValue,
+          description: coupon.code || couponCode,
+          label,
+        });
+        toast.success(`Cupón aplicado: ${label}`);
       } else {
         setCouponError(data.message || data.error || 'Cupón inválido o expirado');
       }
@@ -122,7 +121,9 @@ const Checkout = () => {
       if (err?.response?.status === 404 || !err?.response) {
         setCouponError('Cupones no disponibles por el momento');
       } else {
-        setCouponError(err?.response?.data?.error || 'Cupón inválido o expirado');
+        const msg = err?.response?.data?.error || 'Cupón inválido o expirado';
+        setCouponError(msg);
+        toast.error(msg);
       }
     } finally {
       setCouponLoading(false);
@@ -148,7 +149,8 @@ const Checkout = () => {
     try {
       const data = await paymentService.createPaymentIntent(
         buildCartItems(),
-        getSelectedAddress()
+        getSelectedAddress(),
+        couponData ? couponCode : undefined
       );
       setClientSecret(data.clientSecret);
     } catch (err) {
@@ -166,16 +168,15 @@ const Checkout = () => {
     navigate('/checkout/exito', { state: { paymentIntentId: paymentIntent.id, total, paymentMethod: 'tarjeta' } });
   };
 
-  // Métodos no-Stripe: crear orden directamente vía POST /api/orders
+  // Métodos no-Stripe (transferencia): POST /payment/create-transfer-order
   const handleConfirm = async () => {
     setProcessing(true);
     try {
-      const res = await orderService.createOrder({
-        orderItems: buildOrderItems(),
-        shippingAddress: getSelectedAddress(),
-        paymentResult: { status: 'pending', id: '' },
-        totalPrice: total,
-      });
+      const res = await paymentService.createTransferOrder(
+        buildCartItems(),
+        getSelectedAddress(),
+        couponData ? couponCode : undefined
+      );
       const orderId = res?.order?._id || res?.order?.id || res?._id;
       clearCart();
       navigate('/checkout/exito', { state: { orderId, total, paymentMethod } });
@@ -207,9 +208,9 @@ const Checkout = () => {
               return (
                 <div key={item.product._id || item.product.id} className="flex items-center gap-3">
                   <img
-                    src={item.product.images?.[0] || item.product.image}
+                    src={getProductImage(item.product)}
                     alt={item.product.name}
-                    className="w-12 h-12 rounded-lg object-cover"
+                    className="w-12 h-12 rounded-lg object-contain bg-base-200"
                   />
                   <div className="flex-1">
                     <p className="font-medium text-sm">{item.product.name}</p>
@@ -259,7 +260,7 @@ const Checkout = () => {
           {couponError && <p className="text-error text-sm mb-3">{couponError}</p>}
           {couponData && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-sm text-green-700">
-              ✅ {couponData.description} — {couponData.discountPercent}% de descuento aplicado
+              ✅ {couponData.description} — {couponData.label} aplicado
             </div>
           )}
 
@@ -275,7 +276,7 @@ const Checkout = () => {
             </div>
             {couponData && (
               <div className="flex justify-between text-green-600">
-                <span>Descuento ({couponData.discountPercent}%)</span>
+                <span>Descuento ({couponData.label})</span>
                 <span>-{formatCurrency(discount)}</span>
               </div>
             )}
@@ -421,7 +422,7 @@ const Checkout = () => {
               Atrás
             </Button>
 
-            {/* Transferencia / QR / Efectivo */}
+            {/* Transferencia bancaria */}
             {paymentMethod !== 'tarjeta' && (
               <Button
                 variant="primary"

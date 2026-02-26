@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { IoArrowBack, IoCart, IoAdd, IoRemove } from 'react-icons/io5';
+import { IoArrowBack, IoCart, IoAdd, IoRemove, IoHeart, IoHeartOutline } from 'react-icons/io5';
+import { toast } from 'react-toastify';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import useWishlist from '../hooks/useWishlist';
 import { useProduct } from '../hooks/useProduct';
 import { getProductId, getProductImage } from '../utils/productHelpers';
 import { formatCurrency } from '../utils/formatters';
@@ -15,6 +18,8 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
+  const { isInWishlist, toggleItem, isToggling } = useWishlist();
   const { data: product, isLoading } = useProduct(id);
 
   const [qty, setQty] = useState(1);
@@ -57,6 +62,14 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     addItem(product, qty);
     setQty(1);
+  };
+
+  const handleWishlist = () => {
+    if (!isAuthenticated) {
+      toast.info('Inicia sesión para guardar favoritos');
+      return;
+    }
+    toggleItem(product);
   };
 
   return (
@@ -189,6 +202,21 @@ const ProductDetail = () => {
                 Agotado
               </Badge>
             )}
+
+            {/* Botón de favoritos */}
+            <Button
+              variant="ghost"
+              fullWidth
+              icon={
+                isInWishlist(product)
+                  ? <IoHeart size={20} style={{ color: '#C34928' }} />
+                  : <IoHeartOutline size={20} style={{ color: '#5B3A29' }} />
+              }
+              onClick={handleWishlist}
+              disabled={isToggling}
+            >
+              {isInWishlist(product) ? 'Guardado en favoritos' : 'Agregar a favoritos'}
+            </Button>
           </div>
         </div>
       </div>

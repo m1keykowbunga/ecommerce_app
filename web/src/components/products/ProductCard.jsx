@@ -1,14 +1,28 @@
 import { Link } from 'react-router-dom';
-import { IoStar, IoCart } from 'react-icons/io5';
+import { IoStar, IoCart, IoHeart, IoHeartOutline } from 'react-icons/io5';
+import { toast } from 'react-toastify';
 import { useCart } from '../../contexts/CartContext';
+import { useAuth } from '../../contexts/AuthContext';
+import useWishlist from '../../hooks/useWishlist';
 import { formatCurrency } from '../../utils/formatters';
 import { getProductId, getProductImage } from '../../utils/productHelpers';
 
 const ProductCard = ({ product }) => {
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
+  const { isInWishlist, toggleItem, isToggling } = useWishlist();
 
   // Compatible con mock (available) y MongoDB (stock)
   const isAvailable = product.available !== false && (product.available === true || (product.stock ?? 1) > 0);
+
+  const handleWishlist = (e) => {
+    e.preventDefault(); // evitar que el Link envolvente navegue
+    if (!isAuthenticated) {
+      toast.info('Inicia sesión para guardar favoritos');
+      return;
+    }
+    toggleItem(product);
+  };
 
   return (
     <div className="card-product group">
@@ -31,6 +45,18 @@ const ProductCard = ({ product }) => {
               -{product.discount}%
             </span>
           )}
+          {/* Botón de favoritos — esquina superior derecha (patrón mobile) */}
+          <button
+            onClick={handleWishlist}
+            disabled={isToggling}
+            className="absolute top-3 right-3 p-2 rounded-full bg-brand-secondary/10 backdrop-blur-sm hover:bg-brand-secondary/20 transition-all disabled:opacity-50 z-10"
+            aria-label={isInWishlist(product) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          >
+            {isInWishlist(product)
+              ? <IoHeart size={18} style={{ color: '#C34928' }} />
+              : <IoHeartOutline size={18} style={{ color: '#5B3A29' }} />
+            }
+          </button>
         </div>
       </Link>
 

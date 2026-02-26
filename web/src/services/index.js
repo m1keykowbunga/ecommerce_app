@@ -74,8 +74,12 @@ export const reviewService = {
 
 // ============= CUPONES =============
 export const couponService = {
-  validate: async (code) => {
-    const response = await api.post('/coupons/validate', { code });
+  validate: async (code, subtotal) => {
+    const response = await api.post('/coupons/validate', { code, subtotal });
+    return response.data;
+  },
+  getActive: async () => {
+    const response = await api.get('/coupons/active');
     return response.data;
   },
 };
@@ -103,6 +107,29 @@ export const addressService = {
   },
 };
 
+// ============= USUARIO — perfil extendido =============
+export const userService = {
+  getProfile: async () => {
+    const response = await api.get('/users/profile');
+    return response.data;
+  },
+
+  updateProfile: async (profileData) => {
+    const response = await api.put('/users/profile', profileData);
+    return response.data;
+  },
+
+  updateNotificationPreferences: async (prefs) => {
+    const response = await api.put('/users/notification-preferences', prefs);
+    return response.data;
+  },
+
+  deactivateAccount: async () => {
+    const response = await api.patch('/users/deactivate');
+    return response.data;
+  },
+};
+
 // ============= WISHLIST (/api/users/wishlist) =============
 export const wishlistService = {
   getWishlist: async () => {
@@ -123,10 +150,20 @@ export const wishlistService = {
 
 // ============= PAGOS =============
 export const paymentService = {
-  createPaymentIntent: async (cartItems, shippingAddress) => {
+  createPaymentIntent: async (cartItems, shippingAddress, couponCode) => {
     const response = await api.post('/payment/create-intent', {
       cartItems,
       shippingAddress,
+      couponCode,
+    });
+    return response.data;
+  },
+
+  createTransferOrder: async (cartItems, shippingAddress, couponCode) => {
+    const response = await api.post('/payment/create-transfer-order', {
+      cartItems,
+      shippingAddress,
+      couponCode,
     });
     return response.data;
   },

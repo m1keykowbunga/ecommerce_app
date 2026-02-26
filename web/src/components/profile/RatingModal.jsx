@@ -3,6 +3,7 @@ import { IoStar } from 'react-icons/io5';
 import { toast } from 'react-toastify';
 import useReviews from '../../hooks/useReviews';
 import { getProductId, getProductImage } from '../../utils/productHelpers';
+import { formatCurrency } from '../../utils/formatters';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
 
@@ -48,8 +49,8 @@ const RatingModal = ({ order, onClose }) => {
   };
 
   return (
-    <Modal isOpen onClose={onClose} title="Calificar pedido">
-      <div className="space-y-6">
+    <Modal isOpen onClose={onClose} title="Calificar Productos">
+      <div className="space-y-4">
         {items.map((item) => {
           const productId = getProductId(item.product) || item.product;
           const currentRating = ratings[productId] || 0;
@@ -57,18 +58,31 @@ const RatingModal = ({ order, onClose }) => {
           const name = item.name || item.product?.name || 'Producto';
 
           return (
-            <div key={productId} className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
+            <div key={productId} className="bg-brand-accent/10 rounded-xl p-4">
+              {/* Fila superior: imagen + info */}
+              <div className="flex items-center gap-3 mb-3">
                 {image && (
                   <img
                     src={image}
                     alt={name}
-                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                    className="w-16 h-16 rounded-lg object-contain bg-white shrink-0"
                   />
                 )}
-                <p className="font-medium text-sm">{name}</p>
+                <div>
+                  <p className="font-semibold text-sm">{name}</p>
+                  {item.quantity && (
+                    <p className="text-xs text-text-secondary">Cantidad: {item.quantity}</p>
+                  )}
+                  {item.price && (
+                    <p className="text-sm font-medium text-brand-accent">
+                      {formatCurrency(item.price)}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-1">
+
+              {/* Estrellas */}
+              <div className="flex justify-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -77,21 +91,17 @@ const RatingModal = ({ order, onClose }) => {
                     className="focus:outline-none"
                   >
                     <IoStar
-                      size={28}
-                      className={
-                        star <= currentRating
-                          ? 'text-yellow-400'
-                          : 'text-gray-300'
-                      }
+                      size={32}
+                      className={star <= currentRating ? 'text-brand-accent' : 'text-gray-300'}
                     />
                   </button>
                 ))}
-                {currentRating > 0 && (
-                  <span className="ml-2 text-sm text-text-secondary">
-                    {STAR_LABELS[currentRating]}
-                  </span>
-                )}
               </div>
+              {currentRating > 0 && (
+                <p className="text-sm text-text-secondary text-center mt-1">
+                  {STAR_LABELS[currentRating]}
+                </p>
+              )}
             </div>
           );
         })}

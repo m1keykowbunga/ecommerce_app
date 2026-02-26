@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { IoArrowBack, IoClose, IoLockClosed, IoLogoWhatsapp } from 'react-icons/io5';
+import { IoArrowBack, IoLockClosed, IoLogoWhatsapp } from 'react-icons/io5';
 import { toast } from 'react-toastify';
 
 import { useCart } from '../contexts/CartContext';
@@ -9,17 +9,12 @@ import { formatCurrency } from '../utils/formatters';
 import { IVA_RATE, CONTACT_INFO } from '../utils/constants';
 
 const SHIPPING_COST = 10000;
-const FALLBACK_PROMOS = [
-  { code: 'BIENVENIDO10', discountPercent: 10, active: true },
-  { code: 'PALITO15', discountPercent: 15, active: true },
-];
 
 import CartItem from '../components/cart/CartItem';
 import OrderSummary from '../components/cart/OrderSummary';
 import EmptyCart from '../components/cart/EmptyCart';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
-import Input from '../components/common/Input';
 import Modal from '../components/common/Modal';
 
 const Cart = () => {
@@ -27,45 +22,19 @@ const Cart = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [couponError, setCouponError] = useState('');
   const [includeShipping, setIncludeShipping] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Cálculo de totales
-  const couponDiscount = appliedCoupon
-    ? Math.round(subtotal * (appliedCoupon.discountPercent / 100))
-    : 0;
-  const discountedSub = subtotal - couponDiscount;
-  const iva = Math.round(discountedSub * IVA_RATE);
-  const baseWithoutIva = discountedSub - iva;
+  const iva = Math.round(subtotal * IVA_RATE);
+  const baseWithoutIva = subtotal - iva;
   const shipping = includeShipping ? SHIPPING_COST : 0;
-  const total = discountedSub + shipping;
-
-  const handleApplyCoupon = () => {
-    const code = couponCode.trim().toUpperCase();
-    if (!code) return;
-    const promo = FALLBACK_PROMOS.find((p) => p.code === code && p.active);
-    if (promo) {
-      setAppliedCoupon(promo);
-      setCouponError('');
-      toast.success(`Cupón "${promo.code}" aplicado: ${promo.discountPercent}% de descuento`);
-    } else {
-      setCouponError('Cupón inválido o expirado');
-    }
-  };
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponCode('');
-    setCouponError('');
-  };
+  const total = subtotal + shipping;
 
   /**
    * method: 'tarjeta' | 'otros' | null
    * - 'tarjeta' → checkout preseleccionado con Stripe
-   * - 'otros'   → checkout en step de selección de método (tranferencia/QR/efectivo)
+   * - 'otros'   → checkout en step de selección de método (transferencia)
    * - null      → usuario no autenticado → modal de login
    */
   const handleCheckout = (method) => {
@@ -90,7 +59,6 @@ const Cart = () => {
       msg += `- ${item.product.name} x${item.quantity} = ${formatCurrency(price * item.quantity)}\n`;
     });
     msg += `\nSubtotal (sin IVA): ${formatCurrency(baseWithoutIva)}`;
-    if (appliedCoupon) msg += `\nCupón (${appliedCoupon.code}): -${formatCurrency(couponDiscount)}`;
     msg += `\nIVA (19%): ${formatCurrency(iva)}`;
     if (includeShipping) msg += `\nEnvío: ${formatCurrency(shipping)}`;
     msg += `\n*Total: ${formatCurrency(total)}*`;
@@ -132,40 +100,6 @@ const Cart = () => {
             ))}
           </div>
 
-          {/* Cupón */}
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mt-4">
-            <h3 className="font-medium text-gray-700 mb-3">Cupón de descuento</h3>
-            {appliedCoupon ? (
-              <div className="flex items-center gap-2">
-                <Badge variant="success" size="md">
-                  {appliedCoupon.code} (-{appliedCoupon.discountPercent}%)
-                </Badge>
-                <button
-                  onClick={handleRemoveCoupon}
-                  className="btn btn-xs btn-ghost btn-circle text-gray-400 hover:text-red-500"
-                  aria-label="Remover cupón"
-                >
-                  <IoClose size={16} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Ingresa tu cupón"
-                  value={couponCode}
-                  onChange={(e) => { setCouponCode(e.target.value); setCouponError(''); }}
-                  error={couponError}
-                  size="sm"
-                  containerClassName="flex-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-                />
-                <Button variant="primary" size="sm" outline onClick={handleApplyCoupon} className="shrink-0">
-                  Aplicar
-                </Button>
-              </div>
-            )}
-          </div>
-
           {/* WhatsApp alternativo */}
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4 flex items-start gap-3">
             <IoLogoWhatsapp size={22} className="text-green-600 flex-shrink-0 mt-0.5" />
@@ -187,8 +121,8 @@ const Cart = () => {
         <div className="lg:col-span-1">
           <OrderSummary
             baseWithoutIva={baseWithoutIva}
-            couponDiscount={couponDiscount}
-            appliedCoupon={appliedCoupon}
+            couponDiscount={0}
+            appliedCoupon={null}
             includeShipping={includeShipping}
             onToggleShipping={() => setIncludeShipping(!includeShipping)}
             shipping={shipping}

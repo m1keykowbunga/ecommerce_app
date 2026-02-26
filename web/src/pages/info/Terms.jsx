@@ -24,7 +24,7 @@ const Terms = () => {
         <p className="text-gray-600 mb-4">
           Todos los precios mostrados incluyen IVA (19%). Los precios pueden cambiar sin previo
           aviso. El pago debe realizarse a través de los métodos disponibles: transferencia
-          bancaria, QR (Nequi/Daviplata) o efectivo contra entrega.
+          bancaria o tarjeta de crédito/débito.
         </p>
 
         <h2 className="text-lg font-semibold text-brand-secondary">4. Pedidos y Entregas</h2>

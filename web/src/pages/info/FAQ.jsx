@@ -4,7 +4,7 @@ const faqData = [
     questions: [
       {
         q: '¿Cómo hago un pedido?',
-        a: 'Navega por nuestro catálogo, agrega los productos al carrito y sigue el proceso de checkout. Puedes pagar por transferencia, QR o efectivo contra entrega.',
+        a: 'Navega por nuestro catálogo, agrega los productos al carrito y sigue el proceso de checkout. Puedes pagar por transferencia bancaria o tarjeta de crédito/débito.',
       },
       {
         q: '¿Puedo modificar mi pedido después de realizarlo?',
@@ -21,7 +21,7 @@ const faqData = [
     questions: [
       {
         q: '¿Qué métodos de pago aceptan?',
-        a: 'Aceptamos transferencia bancaria (Bancolombia), pago por QR (Nequi y Daviplata), y efectivo contra entrega.',
+        a: 'Aceptamos transferencia bancaria (Bancolombia) y tarjeta de crédito/débito a través de Stripe.',
       },
       {
         q: '¿Los precios incluyen IVA?',

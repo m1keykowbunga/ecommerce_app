@@ -1,4 +1,4 @@
-import { IoCash, IoQrCode, IoSwapHorizontal, IoCard } from 'react-icons/io5';
+import { IoSwapHorizontal, IoCard } from 'react-icons/io5';
 import { BANK_INFO } from '../../utils/constants';
 
 const methods = [
@@ -7,18 +7,6 @@ const methods = [
     label: 'Transferencia bancaria',
     icon: <IoSwapHorizontal size={24} />,
     description: 'Paga directamente a nuestra cuenta',
-  },
-  {
-    id: 'qr',
-    label: 'QR Nequi / Daviplata',
-    icon: <IoQrCode size={24} />,
-    description: 'Escanea el código QR para pagar',
-  },
-  {
-    id: 'efectivo',
-    label: 'Efectivo contra entrega',
-    icon: <IoCash size={24} />,
-    description: 'Paga al recibir tu pedido',
   },
   {
     id: 'tarjeta',

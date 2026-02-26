@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { IoCard, IoCash, IoLockClosed } from 'react-icons/io5';
+import { IoCard, IoSwapHorizontal, IoLockClosed } from 'react-icons/io5';
 import { formatCurrency } from '../../utils/formatters';
 import Button from '../common/Button';
 import Card from '../common/Card';
@@ -77,15 +77,15 @@ const OrderSummary = ({
                 Pagar con tarjeta
               </Button>
 
-              {/* Otros métodos (transferencia, QR, efectivo) */}
+              {/* Transferencia bancaria */}
               <Button
                 variant="primary"
                 outline
                 fullWidth
-                icon={<IoCash size={18} />}
+                icon={<IoSwapHorizontal size={18} />}
                 onClick={() => onCheckout('otros')}
               >
-                Otros métodos de pago
+                Pagar por transferencia
               </Button>
             </>
           ) : (

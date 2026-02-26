@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { IoArrowForward, IoPricetag } from 'react-icons/io5';
+import { IoArrowForward, IoChevronBack, IoChevronForward } from 'react-icons/io5';
+import { useQuery } from '@tanstack/react-query';
 import ProductCard from '../components/products/ProductCard';
 import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import useProducts from '../hooks/useProducts';
 import { getProductId } from '../utils/productHelpers';
-import { promotions } from '../data/mockData';
+import { couponService } from '../services/index';
 
 const Home = () => {
   const { data: allProducts = [], isLoading } = useProducts();
@@ -15,7 +17,13 @@ const Home = () => {
     ? allProducts.filter((p) => p.featured).slice(0, 4)
     : allProducts.slice(0, 4);
 
-  const activePromos = promotions.filter((p) => p.active);
+  const { data: couponData } = useQuery({
+    queryKey: ['coupons', 'active'],
+    queryFn: couponService.getActive,
+    staleTime: 5 * 60 * 1000,
+  });
+  const activePromos = couponData?.coupons || [];
+  const [currentIdx, setCurrentIdx] = useState(0);
 
   return (
     <main className="animate-fade-in">
@@ -28,8 +36,8 @@ const Home = () => {
               <span className="text-ui-background">Colombia</span>
             </h1>
             <p className="mt-4 text-lg opacity-90 lg:text-xl">
-              Empanadas crujientes, buñuelos esponjosos y café colombiano de
-              origen. Tradición artesanal desde 2020.
+              Palitos de Queso crujientes, Buñuelos esponjosos y tradición colombiana en
+              cada bocado. Calidad desde 2005.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link to="/catalogo">
@@ -69,26 +77,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Promos Banner */}
-      {activePromos.length > 0 && (
-        <section className="bg-brand-accent/10 border-y border-brand-accent/20 py-4 overflow-hidden">
-          <div className="animate-marquee">
-            {[...activePromos, ...activePromos].map((promo, idx) => (
-              <span key={idx} className="inline-flex items-center gap-2 mx-12 text-base font-medium whitespace-nowrap">
-                <IoPricetag className="text-brand-accent flex-shrink-0" size={18} />
-                <span className="text-text-secondary">
-                  Usa el código{' '}
-                  <span className="bg-brand-accent text-white px-2 py-0.5 rounded font-mono font-bold text-sm">
-                    {promo.code}
-                  </span>
-                  {' '}y obtén {promo.description}.
-                </span>
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Featured Products */}
       <section className="py-16 bg-white">
         <div className="container">
@@ -126,8 +114,98 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Promos — carrusel con flechas */}
+      {activePromos.length > 0 && (
+        <section
+          className="relative py-12 px-4 overflow-hidden"
+          style={{
+            backgroundImage: "url('https://res.cloudinary.com/diqoi03kk/image/upload/v1771179829/Comida-de-navidad-en-Colombia_rpr88g.jpg')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="absolute inset-0 bg-brand-primary/80" />
+          <div className="container relative z-10">
+            <h2 className="font-sans text-3xl md:text-4xl font-bold text-white mb-8 text-center">
+              Promociones activas
+            </h2>
+
+            <div className="flex items-center justify-center gap-4">
+              {/* Flecha izquierda */}
+              <button
+                onClick={() => setCurrentIdx((i) => (i - 1 + activePromos.length) % activePromos.length)}
+                disabled={activePromos.length <= 1}
+                className="text-white/80 hover:text-white disabled:opacity-20 transition-colors shrink-0"
+                aria-label="Cupón anterior"
+              >
+                <IoChevronBack size={36} />
+              </button>
+
+              {/* Tarjeta única */}
+              {(() => {
+                const promo = activePromos[currentIdx];
+                return (
+                  <div className="w-full max-w-xs bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div className="bg-brand-accent px-6 py-8 text-white text-center">
+                      <p className="text-6xl font-black leading-none">
+                        {promo.discountType === 'percentage'
+                          ? `${promo.discountValue}%`
+                          : `$${Number(promo.discountValue).toLocaleString('es-CO')}`}
+                      </p>
+                      <p className="text-sm mt-2 opacity-80 font-medium tracking-wide uppercase">
+                        de descuento
+                      </p>
+                    </div>
+                    <div className="border-t-2 border-dashed border-brand-accent/30 mx-6" />
+                    <div className="px-6 py-5 flex flex-col items-center gap-2 text-center">
+                      <span className="font-mono font-bold tracking-widest text-brand-accent border border-dashed border-brand-accent/50 px-3 py-1 rounded text-base">
+                        {promo.code}
+                      </span>
+                      {promo.firstOrderOnly && (
+                        <p className="text-xs text-gray-400">Solo en tu primera compra</p>
+                      )}
+                      {promo.expiresAt && (
+                        <p className="text-xs text-gray-400">
+                          Hasta {new Date(promo.expiresAt).toLocaleDateString('es-CO')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Flecha derecha */}
+              <button
+                onClick={() => setCurrentIdx((i) => (i + 1) % activePromos.length)}
+                disabled={activePromos.length <= 1}
+                className="text-white/80 hover:text-white disabled:opacity-20 transition-colors shrink-0"
+                aria-label="Cupón siguiente"
+              >
+                <IoChevronForward size={36} />
+              </button>
+            </div>
+
+            {/* Puntos indicadores */}
+            {activePromos.length > 1 && (
+              <div className="flex justify-center gap-2 mt-6">
+                {activePromos.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentIdx(i)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      i === currentIdx ? 'bg-white' : 'bg-white/30'
+                    }`}
+                    aria-label={`Ir al cupón ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Google Maps */}
-      <section className="pb-16 bg-white">
+      <section className="py-16 bg-white">
         <div className="container text-center">
           <h2 className="mb-6 font-sans text-3xl md:text-4xl font-bold text-text-primary">
             Encuéntranos

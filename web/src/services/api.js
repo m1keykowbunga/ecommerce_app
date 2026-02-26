@@ -1,20 +1,17 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-// Log de depuración para verificar la URL en la demo
-console.log("🔍 Mi URL de API es:", import.meta.env.VITE_API_URL);
-
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   timeout: 10000,
-  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': 'true' // <--- VITAL para que la App y Web carguen vía ngrok
   },
+  withCredentials: true,
 });
 
 // ─── Singleton para getToken de Clerk ────────────────────────────────────────
+// Se inicializa en ClerkTokenSync.jsx, dentro del árbol de ClerkProvider
 let _getToken = null;
 export const setTokenGetter = (fn) => {
   _getToken = fn;
@@ -51,7 +48,14 @@ api.interceptors.response.use(
           break;
 
         case 403:
-          toast.error('No tienes permisos para realizar esta acción.');
+          if (data?.code === 'ACCOUNT_INACTIVE') {
+            toast.error('Tu cuenta ha sido desactivada. Serás redirigido.');
+            setTimeout(() => {
+              window.location.href = '/cuenta-inactiva';
+            }, 1500);
+          } else {
+            toast.error('No tienes permisos para realizar esta acción.');
+          }
           break;
 
         case 404:

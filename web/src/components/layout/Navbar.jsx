@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { IoCart, IoPerson, IoMenu, IoClose, IoLogOut } from 'react-icons/io5';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../common/Button';
@@ -20,6 +20,21 @@ const Navbar = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  // Cerrar menú móvil al hacer scroll
+  // Delay de 150ms para ignorar el micro-scroll que genera el tap del botón
+  useEffect(() => {
+    if (!open) return;
+    let handleScroll;
+    const timer = setTimeout(() => {
+      handleScroll = () => setOpen(false);
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    }, 150);
+    return () => {
+      clearTimeout(timer);
+      if (handleScroll) window.removeEventListener('scroll', handleScroll);
+    };
+  }, [open]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-ui-border backdrop-blur-nav shadow-sm">

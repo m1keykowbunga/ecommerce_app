@@ -150,25 +150,6 @@ export const products = [
   },
 ];
 
-export const promotions = [
-  {
-    id: "1",
-    code: "BIENVENIDO10",
-    description: "10% de descuento en tu primera compra",
-    discountPercent: 10,
-    active: true,
-    validUntil: "2026-06-30"
-  },
-  {
-    id: "2",
-    code: "COMBO20",
-    description: "20% de descuento en combos familiares",
-    discountPercent: 20,
-    active: true,
-    validUntil: "2026-03-31"
-  },
-];
-
 // ============ HELPER FUNCTIONS ============
 
 export const formatCOP = (amount) => {

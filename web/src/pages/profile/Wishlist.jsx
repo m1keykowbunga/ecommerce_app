@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { IoHeartDislike, IoCartOutline, IoArrowBack } from 'react-icons/io5';
-import { toast } from 'react-toastify';
 import useWishlist from '../../hooks/useWishlist';
 import useProducts from '../../hooks/useProducts';
 import { useCart } from '../../contexts/CartContext';
@@ -29,7 +28,6 @@ const Wishlist = () => {
 
   const handleAddToCart = (product) => {
     addItem(product, 1);
-    toast.success(`${product.name} agregado al carrito`);
   };
 
   if (isLoading) {
@@ -80,14 +78,16 @@ const Wishlist = () => {
             return (
               <div
                 key={id}
-                className="bg-white rounded-xl shadow-sm border border-ui-border overflow-hidden hover:shadow-md transition-shadow"
+                className="card-product"
               >
                 <Link to={`/producto/${id}`}>
-                  <img
-                    src={image}
-                    alt={product.name}
-                    className="w-full h-48 object-cover"
-                  />
+                  <div className="w-full h-40 bg-white flex items-center justify-center overflow-hidden">
+                    <img
+                      src={image}
+                      alt={product.name}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
                 </Link>
                 <div className="p-4">
                   <Link to={`/producto/${id}`}>

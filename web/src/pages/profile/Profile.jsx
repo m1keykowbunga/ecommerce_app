@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { toast } from 'react-toastify';
@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { profileSchema, changePasswordSchema } from '../../utils/validationSchemas';
 import useAddresses from '../../hooks/useAddresses';
+import useProfile from '../../hooks/useProfile';
 import AddressForm from '../../components/profile/AddressForm';
 import AddressCard from '../../components/profile/AddressCard';
 import Input from '../../components/common/Input';
@@ -27,9 +28,34 @@ const Profile = () => {
   const { user, updateProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('info');
   const { addresses, createAddressAsync, updateAddressAsync, deleteAddress } = useAddresses();
+  const {
+    profile,
+    updateProfile: updateDemographics,
+    isUpdating: demographicsUpdating,
+    updateNotifications,
+    isUpdatingNotifications,
+    deactivateAccount,
+    isDeactivating,
+  } = useProfile();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Notification preferences (local para feedback visual inmediato)
+  const [notifState, setNotifState] = useState({
+    emailNotifications: true,
+    marketingEmails: false,
+  });
+
+  // Sincronizar preferencias cuando carga el perfil del servidor
+  useEffect(() => {
+    if (profile) {
+      setNotifState({
+        emailNotifications: profile.emailNotifications ?? true,
+        marketingEmails: profile.marketingEmails ?? false,
+      });
+    }
+  }, [profile]);
 
   // Profile form
   const {
@@ -44,6 +70,27 @@ const Profile = () => {
       phone: user?.phone || '',
     },
   });
+
+  // Demographic form
+  const {
+    register: registerDemographic,
+    handleSubmit: handleDemographicSubmit,
+    reset: resetDemographic,
+  } = useForm({
+    defaultValues: { documentType: '', documentNumber: '', gender: '', dateOfBirth: '' },
+  });
+
+  // Sincronizar datos demográficos cuando carga el perfil
+  useEffect(() => {
+    if (profile) {
+      resetDemographic({
+        documentType: profile.documentType || '',
+        documentNumber: profile.documentNumber || '',
+        gender: profile.gender || '',
+        dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.substring(0, 10) : '',
+      });
+    }
+  }, [profile, resetDemographic]);
 
   // Password form
   const {
@@ -88,9 +135,24 @@ const Profile = () => {
     toast.success('Dirección eliminada');
   };
 
-  const handleDeleteAccount = () => {
-    toast.info('Cuenta eliminada (mock)');
-    logout();
+  const onDemographicSubmit = (data) => {
+    updateDemographics(data);
+  };
+
+  const handleToggleNotification = (key) => {
+    const newState = { ...notifState, [key]: !notifState[key] };
+    setNotifState(newState);
+    updateNotifications(newState);
+  };
+
+  const handleDeactivateAccount = async () => {
+    try {
+      await deactivateAccount();
+      toast.success('Cuenta desactivada');
+      logout();
+    } catch {
+      toast.error('Error al desactivar la cuenta');
+    }
   };
 
   const tabs = [
@@ -189,10 +251,87 @@ const Profile = () => {
             </Button>
           </form>
 
+          {/* Datos personales adicionales */}
+          <div className="border-t mt-8 pt-6">
+            <h3 className="text-lg font-semibold mb-4">Datos personales adicionales</h3>
+            <form onSubmit={handleDemographicSubmit(onDemographicSubmit)} className="space-y-4 max-w-md">
+              <div>
+                <label className="label pb-1">
+                  <span className="label-text text-sm font-medium">Tipo de documento</span>
+                </label>
+                <select className="select select-bordered w-full" {...registerDemographic('documentType')}>
+                  <option value="">Seleccionar...</option>
+                  <option value="cedula_ciudadania">Cédula de ciudadanía</option>
+                  <option value="cedula_extranjeria">Cédula de extranjería</option>
+                  <option value="pasaporte">Pasaporte</option>
+                </select>
+              </div>
+              <Input
+                label="Número de documento"
+                placeholder="Ej: 1234567890"
+                onKeyDown={onlyNumbers}
+                {...registerDemographic('documentNumber')}
+              />
+              <div>
+                <label className="label pb-1">
+                  <span className="label-text text-sm font-medium">Género</span>
+                </label>
+                <select className="select select-bordered w-full" {...registerDemographic('gender')}>
+                  <option value="">Seleccionar...</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="femenino">Femenino</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              <Input
+                label="Fecha de nacimiento"
+                type="date"
+                {...registerDemographic('dateOfBirth')}
+              />
+              <Button type="submit" variant="primary" size="sm" loading={demographicsUpdating}>
+                Guardar datos adicionales
+              </Button>
+            </form>
+          </div>
+
+          {/* Preferencias de notificaciones */}
+          <div className="border-t mt-8 pt-6">
+            <h3 className="text-lg font-semibold mb-4">Notificaciones</h3>
+            <div className="space-y-4 max-w-md">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <p className="font-medium text-sm">Notificaciones por email</p>
+                  <p className="text-xs text-gray-500">Confirmaciones y actualizaciones de pedidos</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={notifState.emailNotifications}
+                  onChange={() => handleToggleNotification('emailNotifications')}
+                  disabled={isUpdatingNotifications}
+                />
+              </label>
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <p className="font-medium text-sm">Emails de marketing</p>
+                  <p className="text-xs text-gray-500">Ofertas, novedades y promociones especiales</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={notifState.marketingEmails}
+                  onChange={() => handleToggleNotification('marketingEmails')}
+                  disabled={isUpdatingNotifications}
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Zona de peligro */}
           <div className="border-t mt-8 pt-6">
             <h3 className="text-lg font-semibold text-red-600 mb-2">Zona de peligro</h3>
             <p className="text-sm text-gray-500 mb-3">
-              Una vez elimines tu cuenta, no hay vuelta atrás.
+              Desactivar tu cuenta suspenderá el acceso. Puedes contactar al soporte para reactivarla.
             </p>
             <Button
               variant="error"
@@ -200,7 +339,7 @@ const Profile = () => {
               icon={<IoTrash size={16} />}
               onClick={() => setShowDeleteModal(true)}
             >
-              Eliminar cuenta
+              Desactivar cuenta
             </Button>
           </div>
         </div>
@@ -296,22 +435,22 @@ const Profile = () => {
         />
       </Modal>
 
-      {/* Modal Eliminar Cuenta */}
+      {/* Modal Desactivar Cuenta */}
       <Modal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        title="Eliminar cuenta"
+        title="Desactivar cuenta"
         size="sm"
       >
         <p className="text-gray-600 mb-4">
-          ¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.
+          ¿Estás seguro de que deseas desactivar tu cuenta? El acceso quedará suspendido y deberás contactar al soporte para reactivarla.
         </p>
         <div className="flex gap-3 justify-end">
           <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>
             Cancelar
           </Button>
-          <Button variant="error" onClick={handleDeleteAccount}>
-            Sí, eliminar
+          <Button variant="error" onClick={handleDeactivateAccount} loading={isDeactivating}>
+            Sí, desactivar
           </Button>
         </div>
       </Modal>

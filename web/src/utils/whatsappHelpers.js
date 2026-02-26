@@ -18,8 +18,6 @@ export const buildOrderWhatsAppURL = ({ orderId, items = [], total, paymentMetho
   const paymentLabel = {
     stripe: 'Tarjeta (Stripe)',
     transferencia: 'Transferencia bancaria',
-    qr: 'QR Nequi/Daviplata',
-    efectivo: 'Efectivo contra entrega',
   }[paymentMethod] || paymentMethod || 'Por definir';
 
   const message = [

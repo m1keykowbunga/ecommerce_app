@@ -23,7 +23,7 @@ const CartItem = ({ item }) => {
         <img
           src={image}
           alt={product.name}
-          className="w-20 h-20 object-cover rounded-lg"
+          className="w-20 h-20 object-contain rounded-lg bg-base-200"
         />
       </Link>
 
