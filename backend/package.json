@@ -7,7 +7,8 @@
     "dev": "nodemon src/server.js",
     "inngest": "inngest dev -u http://localhost:3000/api/inngest",
     "dev:all": "concurrently \"npm run dev\" \"npm run inngest\"",
-    "seed:products": "node src/seeds/index.js"
+    "seed:products": "node src/seeds/index.js",
+    "migrate:images": "node src/seeds/migrate-images.js"
   },
   "keywords": [],
   "author": "",

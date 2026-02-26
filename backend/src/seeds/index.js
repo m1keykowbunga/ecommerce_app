@@ -11,7 +11,7 @@ const products = [
     stock: 50,
     category: "Palitos Premium",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760340777/mozzarella_premium_j9my0e.png",
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760340777/mozzarella_premium_j9my0e.png",
     ],
     averageRating: 4.5,
     totalReviews: 128,
@@ -24,7 +24,7 @@ const products = [
     stock: 35,
     category: "Palitos Premium",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1769383615/products/oskq5rdg0sziwtkyusla.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1769383615/products/oskq5rdg0sziwtkyusla.png"
     ],
     averageRating: 4.7,
     totalReviews: 256,
@@ -37,7 +37,7 @@ const products = [
     stock: 25,
     category: "Palitos Cocteleros",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760338836/jamon_coctelero_oms3xe.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760338836/jamon_coctelero_oms3xe.png"
     ],
     averageRating: 4.3,
     totalReviews: 89,
@@ -50,7 +50,7 @@ const products = [
     stock: 60,
     category: "Palitos Cocteleros",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760339152/mozzarella_coctelero_k0sewf.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760339152/mozzarella_coctelero_k0sewf.png"
     ],
     averageRating: 4.6,
     totalReviews: 342,
@@ -63,7 +63,7 @@ const products = [
     stock: 100,
     category: "Palitos Cocteleros",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760337851/guayaba_coctelero_vsuocu.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760337851/guayaba_coctelero_vsuocu.png"
     ],
     averageRating: 4.8,
     totalReviews: 1243,
@@ -76,7 +76,7 @@ const products = [
     stock: 45,
     category: "Palitos Cocteleros",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760338066/chocolate_coctelero_mmooyi.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760338066/chocolate_coctelero_mmooyi.png"
     ],
     averageRating: 4.4,
     totalReviews: 167,
@@ -89,7 +89,7 @@ const products = [
     stock: 40,
     category: "Dulces",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760342624/oblea_hpljme.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760342624/oblea_hpljme.png"
     ],
     averageRating: 4.2,
     totalReviews: 95,
@@ -102,7 +102,7 @@ const products = [
     stock: 75,
     category: "Especiales",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1769925024/products/urtcva5pufpktzxbpiqm.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1769925024/products/urtcva5pufpktzxbpiqm.png"
     ],
     averageRating: 4.5,
     totalReviews: 203,
@@ -115,7 +115,7 @@ const products = [
     stock: 30,
     category: "Especiales",
     images: [
-     "https://res.cloudinary.com/diqoi03kk/image/upload/v1760344131/natilla_porcion_acsrs4.png"
+     "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760344131/natilla_porcion_acsrs4.png"
     ],
     averageRating: 4.7,
     totalReviews: 421,
@@ -128,7 +128,7 @@ const products = [
     stock: 55,
     category: "Especiales",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760379271/natilla_personal_c6kqco.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760379271/natilla_personal_c6kqco.png"
     ],
     averageRating: 4.6,
     totalReviews: 134,
@@ -141,7 +141,7 @@ const products = [
     stock: 55,
     category: "Especiales",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760379857/natilla_familiar_zmfqts.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760379857/natilla_familiar_zmfqts.png"
     ],
     averageRating: 4.6,
     totalReviews: 80,
@@ -154,7 +154,7 @@ const products = [
     stock: 30,
     category: "Especiales",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760380532/hojuela_pn0axk.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760380532/hojuela_pn0axk.png"
     ],
     averageRating: 4.2,
     totalReviews: 67,
@@ -167,7 +167,7 @@ const products = [
     stock: 20,
     category: "Nuevos",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760381317/panocha_vdxwcn.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760381317/panocha_vdxwcn.png"
     ],
     averageRating: 0,
     totalReviews: 0,
@@ -180,7 +180,7 @@ const products = [
     stock: 25,
     category: "Nuevos",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760342008/palipapa_a7rleh.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760342008/palipapa_a7rleh.png"
     ],
     averageRating: 0,
     totalReviews: 0,
@@ -193,7 +193,7 @@ const products = [
     stock: 15,
     category: "Nuevos",
     images: [
-      "https://res.cloudinary.com/diqoi03kk/image/upload/v1760342322/paliplatano_wkqq0e.png"
+      "https://res.cloudinary.com/diqoi03kk/image/upload/f_auto,q_auto,w_400/v1760342322/paliplatano_wkqq0e.png"
     ],
     averageRating: 0,
     totalReviews: 0,

@@ -10,17 +10,18 @@ const getApiUrl = () => {
     return "https://tu-dominio-produccion.com/api";
   }
 
-  if (Platform.OS === "android") {
-    console.log("🤖 Usando IP del emulador Android");
-    return "http://10.0.2.2:3000/api";
-  }
-
   const debuggerHost = Constants.expoConfig?.hostUri?.split(":").shift();
 
   if (debuggerHost) {
     console.log("📱 Usando IP detectada por Expo:", debuggerHost);
     return `http://${debuggerHost}:3000/api`;
   }
+
+  if (Platform.OS === "android") {
+    console.log("🤖 Fallback emulador Android");
+    return "http://10.0.2.2:3000/api";
+  }
+
   const MANUAL_IP = "192.168.40.137";
   console.log("💻 Usando IP manual:", MANUAL_IP);
   return `http://${MANUAL_IP}:3000/api`;

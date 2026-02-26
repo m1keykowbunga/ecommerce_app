@@ -184,9 +184,9 @@ const PaymentMethodModal = ({
                                             </View>
 
                                             {/* Instrucciones */}
-                                            <View className="bg-green-500/10 rounded-xl p-3">
+                                            <View className="bg-ui-surface/45 rounded-xl p-3">
                                                 <View className="flex-row items-start">
-                                                    <Ionicons name="information-circle" size={20} color="#1DB954" />
+                                                    <Ionicons name="information-circle-outline" size={20} color="#1DB954" />
                                                     <Text className="text-text-primary text-xs ml-2 flex-1">
                                                     Después de realizar la transferencia, envía el comprobante por
                                                     WhatsApp para confirmar tu pedido.

@@ -107,7 +107,7 @@ function DashboardPage() {
                       </td>
 
                       <td>
-                        <div className={`badge ${getOrderStatusBadge(order.status)}`}>
+                        <div className={`badge ${getOrderStatusBadge(order.status)} text-black`}>
                           {{
                             delivered: "Entregado",
                             paid: "Pagado",

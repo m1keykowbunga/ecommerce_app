@@ -4,12 +4,44 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from "react-native";
 import useCart from "@/hooks/useCart";
+import { useState } from "react";
 
 interface ProductsGridProps {
     isLoading: boolean;
     isError: boolean;
     products: Product[];
 }
+
+const ProductImage = ({ uri }: { uri: string }) => {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    return (
+        <View className="w-full h-40 bg-ui-surface">
+            {loading && !error && (
+                <View className="absolute inset-0 items-center justify-center bg-gray-100">
+                    <ActivityIndicator size="small" color="#5B3A29" />
+                </View>
+            )}
+
+            {error && (
+                <View className="absolute inset-0 items-center justify-center bg-gray-100">
+                    <Ionicons name="image-outline" size={32} color="#999" />
+                </View>
+            )}
+
+            <Image
+                source={{ uri }}
+                className="w-full h-40"
+                resizeMode="contain"
+                onLoadStart={() => setLoading(true)}
+                onLoadEnd={() => setLoading(false)}
+                onError={() => { setError(true); setLoading(false); }}
+                fadeDuration={200}
+            />
+        </View>
+    );
+};
 
 const ProductsGrid = ({ products, isLoading, isError }: ProductsGridProps) => {
     const { isInWishlist, toggleWishlist, isAddingToWishlist, isRemovingFromWishlist } = useWishlist();
@@ -36,11 +68,7 @@ const ProductsGrid = ({ products, isLoading, isError }: ProductsGridProps) => {
         >
             {/* IMAGE */}
             <View className="relative">
-                <Image
-                    source={{ uri: product.images[0] }}
-                    className="w-full h-40  bg-white"
-                    resizeMode="contain"
-                />
+                <ProductImage uri={product.images[0]} />
                 <TouchableOpacity
                     className="absolute top-3 right-3 bg-brand-secondary/10 backdrop-blur-xl p-2 rounded-full"
                     activeOpacity={0.7}
