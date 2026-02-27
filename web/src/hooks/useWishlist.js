@@ -11,10 +11,18 @@ const useWishlist = () => {
   const { data: wishlist = [], isLoading } = useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
-      const res = await api.get('/users/wishlist');
-      return res.data?.wishlist || res.data || [];
+      try {
+        const res = await api.get('/users/wishlist');
+        // 🛡️ Extraemos los datos sin importar cómo los mande el backend
+        const rawData = res.data?.wishlist || res.data?.data || res.data;
+        return Array.isArray(rawData) ? rawData : [];
+      } catch (error) {
+        console.error("Error en Wishlist:", error);
+        return []; // Retorna array vacío para que .some() no explote
+      }
     },
     enabled: isAuthenticated,
+    initialData: [], // 👈 Vital para que el primer render no sea undefined
   });
 
   const addMutation = useMutation({
@@ -31,6 +39,14 @@ const useWishlist = () => {
 
   const isInWishlist = (product) => {
     const id = getProductId(product);
+    if (!id) return false;
+    
+    // 🛡️ Blindaje: Si wishlist no es un array, no intentes usar .some()
+    if (!Array.isArray(wishlist)) {
+      console.warn("Wishlist no es un array, valor actual:", wishlist);
+      return false;
+    }
+
     return wishlist.some((item) => (item._id || item.id || item) === id);
   };
 

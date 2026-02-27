@@ -5,7 +5,6 @@ import { serve } from "inngest/express";
 import cors from "cors";
 
 import { functions, inngest } from "./config/inngest.js";
-
 import { ENV } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 
@@ -19,19 +18,17 @@ import paymentRoutes from "./routes/payment.routes.js"
 import couponRoutes from "./routes/coupon.routes.js";
 import "./services/email.service.js";
 
-
 const app = express();
-
 const __dirname = path.resolve();
 
 const corsOptions = {
   origin: ENV.NODE_ENV === "production" 
     ? ENV.CLIENT_URL  
     : function (origin, callback) {
-        if (!origin) {
-          return callback(null, true);
-        }
+        // Permitir peticiones sin origen (Postman o apps nativas)
+        if (!origin) return callback(null, true);
         
+        // Patrones de Andrea: Detectan localhost, IPs de WiFi y Expo automáticamente
         const localPatterns = [
           /^http:\/\/localhost(:\d+)?$/,
           /^http:\/\/127\.0\.0\.1(:\d+)?$/,
@@ -40,11 +37,15 @@ const corsOptions = {
           /^http:\/\/172\.\d+\.\d+\.\d+(:\d+)?$/, // Docker / otras redes locales
           /^exp:\/\//,                             // Expo Go
         ];
+
+        // Tu mejora: Soporte para Ngrok
+        const isNgrok = origin.includes('ngrok-free.app') || origin.includes('ngrok.io');
         
-        if (localPatterns.some((pattern) => pattern.test(origin))) {
+        // Verificación combinada
+        if (localPatterns.some((pattern) => pattern.test(origin)) || isNgrok) {
           return callback(null, true);
         }
-
+        
         callback(new Error('Not allowed by CORS'));
       },
   credentials: true,
@@ -70,9 +71,7 @@ app.use(express.json());
 
 app.post("/api/webhooks/clerk", async (req, res) => {
   const event = req.body;
-
   console.log("Webhook received:", event.type);
-
   try {
     await inngest.send({
       name: `clerk.${event.type}`,
@@ -86,7 +85,6 @@ app.post("/api/webhooks/clerk", async (req, res) => {
 });
 
 app.use("/api/inngest", serve({client:inngest, functions}));
-
 app.use(clerkMiddleware());
 
 app.get("/", (req, res) => {
@@ -109,7 +107,6 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ message: "Success" });
 });
 
-// Make app ready for deployment
 if (ENV.NODE_ENV === "production") {
     app.use(express.static(path.join(__dirname, "../admin/dist")));
     app.get("/{*any}", (req, res) => {

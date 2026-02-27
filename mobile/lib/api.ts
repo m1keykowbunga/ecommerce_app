@@ -7,9 +7,11 @@ import { useRouter } from "expo-router";
 
 const getApiUrl = () => {
   if (!__DEV__) {
-    return "https://tu-dominio-produccion.com/api";
+    return "https://yaretzi-asbestous-jerrell.ngrok-free.dev/api";
   }
 
+
+ 
   const debuggerHost = Constants.expoConfig?.hostUri?.split(":").shift();
 
   if (debuggerHost) {
@@ -17,10 +19,11 @@ const getApiUrl = () => {
     return `http://${debuggerHost}:3000/api`;
   }
 
-  if (Platform.OS === "android") {
-    console.log("🤖 Fallback emulador Android");
-    return "http://10.0.2.2:3000/api";
+   if (Platform.OS === "android") {
+    console.log("🤖 Usando IP del emulador Android");
+    return "https://yaretzi-asbestous-jerrell.ngrok-free.dev/api";
   }
+
 
   const MANUAL_IP = "192.168.40.137";
   console.log("💻 Usando IP manual:", MANUAL_IP);
@@ -34,6 +37,7 @@ const api = axios.create({
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",
+    'ngrok-skip-browser-warning': 'true'
   }
 });
 
