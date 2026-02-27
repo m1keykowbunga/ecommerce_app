@@ -1,8 +1,33 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PlusIcon, PencilIcon, Trash2Icon, XIcon, ImageIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productApi } from "../lib/api";
 import { getStockStatusBadge } from "../lib/utils";
+import SearchAndFilter from "../components/SearchFilter";
+import { useSearchFilter } from "../hooks/useSearchFilter";
+
+const PRODUCTS_FILTER_GROUPS = [
+  {
+    key: "category",
+    options: [
+      { label: "Todos",              value: "__all__" },
+      { label: "Palitos Premium",    value: "Palitos Premium" },
+      { label: "Palitos Cocteleros", value: "Palitos Cocteleros" },
+      { label: "Dulces",             value: "Dulces" },
+      { label: "Especiales",         value: "Especiales" },
+      { label: "Nuevos",             value: "Nuevos" },
+    ],
+  },
+  {
+    key: "_stockStatus",
+    options: [
+      { label: "Todo el stock",  value: "__all__" },
+      { label: "Disponible",     value: "disponible", activeClass: "bg-green-500 text-white border-green-500" },
+      { label: "Bajo stock",     value: "bajo",       activeClass: "bg-yellow-400 text-white border-yellow-400" },
+      { label: "Sin stock",      value: "sinstock",   activeClass: "bg-red-500 text-white border-red-500" },
+    ],
+  },
+];
 
 function ProductsPage() {
   const [showModal, setShowModal] = useState(false);
@@ -20,13 +45,26 @@ function ProductsPage() {
 
   const queryClient = useQueryClient();
 
-  // fetch some data
-  const { data: products = [] } = useQuery({
+  const { data: rawProducts = [] } = useQuery({
     queryKey: ["products"],
     queryFn: productApi.getAll,
   });
 
-  // creating, update, deleting
+  const products = useMemo(
+    () => rawProducts.map((p) => ({
+      ...p,
+      _stockStatus: p.stock === 0 ? "sinstock" : p.stock < 10 ? "bajo" : "disponible",
+    })),
+    [rawProducts]
+  );
+
+  const { filtered, query, setQuery, activeFilters, setFilter, clearAll, activeCount } =
+    useSearchFilter({
+      data: products,
+      searchFields: ["name", "category", "description"],
+      filterGroups: PRODUCTS_FILTER_GROUPS,
+    });
+
   const createProductMutation = useMutation({
     mutationFn: productApi.create,
     onSuccess: () => {
@@ -52,7 +90,6 @@ function ProductsPage() {
   });
 
   const closeModal = () => {
-    // reset the state
     setShowModal(false);
     setEditingProduct(null);
     setFormData({
@@ -83,7 +120,6 @@ function ProductsPage() {
     const files = Array.from(e.target.files);
     if (files.length > 3) return alert("Solo se permiten hasta 3 imágenes");
 
-    // revoke previous blob URLs to free memory
     imagePreviews.forEach((url) => {
       if (url.startsWith("blob:")) URL.revokeObjectURL(url);
     });
@@ -95,7 +131,6 @@ function ProductsPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // for new products, require images
     if (!editingProduct && imagePreviews.length === 0) {
       return alert("Se requiere al menos una imagen");
     }
@@ -107,7 +142,6 @@ function ProductsPage() {
     formDataToSend.append("stock", formData.stock);
     formDataToSend.append("category", formData.category);
 
-    // only append new images if they were selected
     if (images.length > 0) images.forEach((image) => formDataToSend.append("images", image));
 
     if (editingProduct) {
@@ -131,65 +165,83 @@ function ProductsPage() {
         </button>
       </div>
 
+      {/* SEARCH & FILTER */}
+      <SearchAndFilter
+        query={query}
+        setQuery={setQuery}
+        filterGroups={PRODUCTS_FILTER_GROUPS}
+        activeFilters={activeFilters}
+        setFilter={setFilter}
+        clearAll={clearAll}
+        activeCount={activeCount}
+        placeholder=""
+        resultCount={filtered.length}
+        totalCount={products.length}
+      />
+
       {/* PRODUCTS GRID */}
-      <div className="grid grid-cols-1 gap-4">
-        {products?.map((product) => {
-          const status = getStockStatusBadge(product.stock);
+      {filtered.length === 0 ? (
+        <p className="text-center text-base-content/60 py-12">No se encontraron productos con ese criterio.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {filtered.map((product) => {
+            const status = getStockStatusBadge(product.stock);
 
-          return (
-            <div key={product._id} className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <div className="flex items-center gap-6">
-                  <div className="avatar">
-                    <div className="w-24 h-24 rounded-xl bg-white flex items-center justify-center p-3 ring-1 ring-base-300">
-                      <img 
-                        className="w-full h-full object-contain"
-                        src={product.images[0] || '/placeholder.png'} 
-                        alt={product.name} 
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="card-title">{product.name}</h3>
-                        <p className="text-base-content/70 text-sm">{product.category}</p>
-                      </div>
-                      <div className={`badge ${status.class}`}>{status.text}</div>
-                    </div>
-                    <div className="flex items-center gap-6 mt-4">
-                      <div>
-                        <p className="text-xs text-base-content/70">Precio</p>
-                        <p className="font-bold text-lg">${product.price} COP</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-base-content/70">Stock</p>
-                        <p className="font-bold text-lg">{product.stock} unidades</p>
+            return (
+              <div key={product._id} className="card bg-base-100 shadow-xl">
+                <div className="card-body">
+                  <div className="flex items-center gap-6">
+                    <div className="avatar">
+                      <div className="w-24 h-24 rounded-xl bg-white flex items-center justify-center p-3 ring-1 ring-base-300">
+                        <img 
+                          className="w-full h-full object-contain"
+                          src={product.images?.[0] ?? "/placeholder.png"} 
+                          alt={product.name} 
+                        />
                       </div>
                     </div>
-                  </div>
 
-                  <div className="card-actions">
-                    <button
-                      className="btn btn-square btn-ghost"
-                      onClick={() => handleEdit(product)}
-                    >
-                      <PencilIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="btn btn-square btn-ghost text-error"
-                      onClick={() => setProductToDelete(product)}
-                    >
-                        <Trash2Icon className="w-5 h-5" />
-                    </button>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="card-title">{product.name}</h3>
+                          <p className="text-base-content/70 text-sm">{product.category}</p>
+                        </div>
+                        <div className={`badge ${status.class}`}>{status.text}</div>
+                      </div>
+                      <div className="flex items-center gap-6 mt-4">
+                        <div>
+                          <p className="text-xs text-base-content/70">Precio</p>
+                          <p className="font-bold text-lg">${product.price} COP</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-base-content/70">Stock</p>
+                          <p className="font-bold text-lg">{product.stock} unidades</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="card-actions">
+                      <button
+                        className="btn btn-square btn-ghost"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <PencilIcon className="w-5 h-5" />
+                      </button>
+                      <button
+                        className="btn btn-square btn-ghost text-error"
+                        onClick={() => setProductToDelete(product)}
+                      >
+                          <Trash2Icon className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ADD/EDIT PRODUCT MODAL */}
 

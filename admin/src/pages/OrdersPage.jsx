@@ -1,7 +1,22 @@
 import { orderApi } from "../lib/api";
 import { formatDate } from "../lib/utils";
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import SearchAndFilter from "../components/SearchFilter";
+import { useSearchFilter } from "../hooks/useSearchFilter";
+
+const ORDERS_FILTER_GROUPS = [
+  {
+    key: "status",
+    options: [
+      { label: "Todos",      value: "__all__" },
+      { label: "Pendiente",  value: "pending",   activeClass: "bg-yellow-400 text-white border-yellow-400" },
+      { label: "Pagado",     value: "paid",      activeClass: "bg-blue-500 text-white border-blue-500" },
+      { label: "Entregado",  value: "delivered", activeClass: "bg-green-500 text-white border-green-500" },
+    ],
+  },
+];
+
+const STATUS_LABELS = { pending: "Pendiente", paid: "Pagado", delivered: "Entregado" };
 
 function OrdersPage() {
   const queryClient = useQueryClient();
@@ -19,11 +34,14 @@ function OrdersPage() {
     },
   });
 
-  const handleStatusChange = (orderId, newStatus) => {
-    updateStatusMutation.mutate({ orderId, status: newStatus });
-  };
-
   const orders = ordersData?.orders || [];
+
+  const { filtered, query, setQuery, activeFilters, setFilter, clearAll, activeCount } =
+    useSearchFilter({
+      data: orders,
+      searchFields: ["_id", "shippingAddress.fullName", "shippingAddress.city", "orderItems.0.name", "totalPrice", "status"],
+      filterGroups: ORDERS_FILTER_GROUPS,
+    });
 
   return (
     <div className="space-y-6">
@@ -36,14 +54,26 @@ function OrdersPage() {
       {/* ORDERS TABLE */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
+          <SearchAndFilter
+            query={query}
+            setQuery={setQuery}
+            filterGroups={ORDERS_FILTER_GROUPS}
+            activeFilters={activeFilters}
+            setFilter={setFilter}
+            clearAll={clearAll}
+            activeCount={activeCount}
+            placeholder=""
+            resultCount={filtered.length}
+            totalCount={orders.length}
+          />
+
           {isLoading ? (
             <div className="flex justify-center py-12">
               <span className="loading loading-spinner loading-lg" />
             </div>
-          ) : orders.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-base-content/60">
               <p className="text-xl font-semibold mb-2">No se encontraron pedidos</p>
-              <p className="text-sm">Los pedidos aparecerán aquí una vez que los clientes realicen compras</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -60,7 +90,7 @@ function OrdersPage() {
                 </thead>
 
                 <tbody>
-                  {orders.map((order) => {
+                  {filtered.map((order) => {
                     const totalQuantity = order.orderItems.reduce(
                       (sum, item) => sum + item.quantity,
                       0
@@ -69,7 +99,7 @@ function OrdersPage() {
                     return (
                       <tr key={order._id}>
                         <td>
-                          <span className="font-medium">#{order._id.slice(-8).toUpperCase()}</span>
+                          <span className="font-medium">{order._id.slice(-8).toUpperCase()}</span>
                         </td>
 
                         <td>
@@ -94,13 +124,13 @@ function OrdersPage() {
                         <td>
                           <select
                             value={order.status}
-                            onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                            onChange={(e) => updateStatusMutation.mutate({orderId: order._id, status: e.target.value})}
                             className="select select-sm"
                             disabled={updateStatusMutation.isPending}
                           >
-                            <option value="pending">Pendiente</option>
-                            <option value="paid">Pagado</option>
-                            <option value="delivered">Entregado</option>
+                            {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                              <option key={val} value={val}>{label}</option>
+                            ))}
                           </select>
                         </td>
 

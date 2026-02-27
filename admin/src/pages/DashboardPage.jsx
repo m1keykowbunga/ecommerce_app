@@ -1,8 +1,21 @@
-import React from 'react'
 import { useQuery } from "@tanstack/react-query";
 import { orderApi, statsApi } from "../lib/api";
 import { DollarSignIcon, ShoppingBagIcon, UsersIcon, PackageIcon } from "lucide-react";
-import { capitalizeText, formatDate, getOrderStatusBadge } from "../lib/utils";
+import { formatDate, getOrderStatusBadge } from "../lib/utils";
+import SearchAndFilter from "../components/SearchFilter";
+import { useSearchFilter } from "../hooks/useSearchFilter";
+
+const DASHBOARD_FILTER_GROUPS = [
+  {
+    key: "status",
+    options: [
+      { label: "Todos",      value: "__all__" },
+      { label: "Pendiente",  value: "pending",   activeClass: "bg-yellow-400 text-white border-yellow-400" },
+      { label: "Pagado",     value: "paid",      activeClass: "bg-blue-500 text-white border-blue-500" },
+      { label: "Entregado",  value: "delivered", activeClass: "bg-green-500 text-white border-green-500" },
+    ],
+  },
+];
 
 function DashboardPage() {
 
@@ -16,7 +29,17 @@ function DashboardPage() {
     queryFn: statsApi.getDashboard,
   });
 
-  const recentOrders = ordersData?.orders?.slice(0, 5) || [];
+  const allOrders = ordersData?.orders || [];
+
+  const { filtered: filteredOrders, query, setQuery, activeFilters, setFilter, clearAll, activeCount } =
+    useSearchFilter({
+      data: allOrders,
+      searchFields: ["_id", "shippingAddress.fullName", "orderItems.0.name", "totalPrice", "status"],
+      filterGroups: DASHBOARD_FILTER_GROUPS,
+    });
+
+  const isSearching = query.trim() !== "" || activeCount > 0;
+  const recentOrders = isSearching ? filteredOrders : filteredOrders.slice(0, 5);
 
   const statsCards = [
     {
@@ -59,6 +82,19 @@ function DashboardPage() {
         <div className="card-body">
           <h2 className="card-title">Pedidos Recientes</h2>
 
+          <SearchAndFilter
+            query={query}
+            setQuery={setQuery}
+            filterGroups={DASHBOARD_FILTER_GROUPS}
+            activeFilters={activeFilters}
+            setFilter={setFilter}
+            clearAll={clearAll}
+            activeCount={activeCount}
+            placeholder=""
+            resultCount={recentOrders.length}
+            totalCount={allOrders.length}
+          />
+          
           {ordersLoading ? (
             <div className="flex justify-center py-8">
               <span className="loading loading-spinner loading-lg" />
@@ -107,7 +143,7 @@ function DashboardPage() {
                       </td>
 
                       <td>
-                        <div className={`badge ${getOrderStatusBadge(order.status)} text-black`}>
+                        <div className={`badge ${getOrderStatusBadge(order.status)} text-white`}>
                           {{
                             delivered: "Entregado",
                             paid: "Pagado",

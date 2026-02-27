@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PencilIcon, Trash2Icon } from "lucide-react";
 import { couponApi } from "../lib/api";
+import SearchAndFilter from "../components/SearchFilter";
+import { useSearchFilter } from "../hooks/useSearchFilter";
 
 
 const emptyForm = {
@@ -10,6 +12,34 @@ const emptyForm = {
     discountValue: "",
     expiresAt: "",
 };
+
+const COUPONS_FILTER_GROUPS = [
+  {
+    key: "discountType",
+    options: [
+      { label: "Todos",          value: "__all__" },
+      { label: "Porcentaje (%)", value: "percentage" },
+      { label: "Valor fijo",     value: "fixed" },
+    ],
+  },
+  {
+    key: "_activeStr",
+    options: [
+      { label: "Todos",    value: "__all__" },
+      { label: "Activo",   value: "true",  activeClass: "bg-black text-white border-black" },
+      { label: "Inactivo", value: "false", activeClass: "bg-neutral-600 text-neutral-300 border-neutral-600" },
+    ],
+  },
+  {
+    key: "_expiryStatus",
+    options: [
+      { label: "Todos",            value: "__all__" },
+      { label: "Sin vencimiento",  value: "none" },
+      { label: "Vigente",          value: "vigente",  activeClass: "bg-green-500 text-white border-green-500" },
+      { label: "Vencido",          value: "vencido",  activeClass: "bg-red-500 text-white border-red-500" },
+    ],
+  },
+];
 
 export default function CouponsPage() {
     const queryClient = useQueryClient();
@@ -22,7 +52,23 @@ export default function CouponsPage() {
         queryFn: couponApi.getAll,
     });
 
-    const coupons = data?.coupons || [];
+    const rawCoupons = data?.coupons || [];
+
+    const coupons = useMemo(
+        () => rawCoupons.map((c) => {
+        let _expiryStatus = "none";
+        if (c.expiresAt) _expiryStatus = new Date(c.expiresAt) >= new Date() ? "vigente" : "vencido";
+        return { ...c, _activeStr: String(!!c.isActive), _expiryStatus };
+        }),
+        [rawCoupons]
+    );
+
+    const { filtered, query, setQuery, activeFilters, setFilter, clearAll, activeCount } =
+        useSearchFilter({
+        data: coupons,
+        searchFields: ["code"],
+        filterGroups: COUPONS_FILTER_GROUPS,
+    });
 
     const createMutation = useMutation({
         mutationFn: couponApi.create,
@@ -64,15 +110,6 @@ export default function CouponsPage() {
         setShowModal(true);
     };
 
-    const handleToggleActive = (coupon) => {
-        updateMutation.mutate({ id: coupon._id, isActive: !coupon.isActive });
-    };
-
-    const handleDelete = (coupon) => {
-        if (!window.confirm(`¿Eliminar el cupón "${coupon.code}"?`)) return;
-        deleteMutation.mutate(coupon._id);
-    };
-
     const handleSubmit = (e) => {
         e.preventDefault();
         const payload = {
@@ -108,9 +145,22 @@ export default function CouponsPage() {
                 </button>
             </div>
 
+            <SearchAndFilter
+                query={query}
+                setQuery={setQuery}
+                filterGroups={COUPONS_FILTER_GROUPS}
+                activeFilters={activeFilters}
+                setFilter={setFilter}
+                clearAll={clearAll}
+                activeCount={activeCount}
+                placeholder=""
+                resultCount={filtered.length}
+                totalCount={coupons.length}
+            />
+
             {isLoading ? (
                 <p className="text-base-content/70 text-sm">Cargando cupones...</p>
-            ) : coupons.length === 0 ? (
+            ) : filtered.length === 0 ? (
                 <p className="text-base-content/70 text-sm">No hay cupones creados todavía.</p>
             ) : (
                 <div className="overflow-x-auto">
@@ -125,7 +175,7 @@ export default function CouponsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {coupons.map((coupon) => (
+                            {filtered.map((coupon) => (
                                 <tr key={coupon._id} className="hover">
                                     <td className="font-bold">{coupon.code}</td>
                                     <td>
@@ -144,10 +194,10 @@ export default function CouponsPage() {
                                     </td>
                                     <td>
                                         <button
-                                            onClick={() => handleToggleActive(coupon)}
+                                            onClick={() => updateMutation.mutate({id: coupon._id, isActive: !coupon.isActive})}
                                             className={`badge border-none cursor-pointer ${
                                                 coupon.isActive
-                                                    ? "bg-green-500 text-black"
+                                                    ? "bg-green-500 text-white"
                                                     : "bg-neutral-700 text-neutral-400"
                                             }`}
                                         >
@@ -162,7 +212,9 @@ export default function CouponsPage() {
                                                 <PencilIcon className="size-4" color="white"/>
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(coupon)}
+                                                onClick={() => {
+                                                    if (window.confirm(`¿Eliminar el cupón "${coupon.code}"?`)) deleteMutation.mutate(coupon._id);
+                                                }}
                                             >
                                                 <Trash2Icon className="size-4" color="red"/>
                                             </button>

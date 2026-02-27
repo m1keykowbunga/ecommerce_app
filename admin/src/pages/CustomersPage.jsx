@@ -1,7 +1,9 @@
-import { useState, Fragment } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerApi } from "../lib/api";
 import { formatDate } from "../lib/utils";
+import SearchAndFilter from "../components/SearchFilter";
+import { useSearchFilter } from "../hooks/useSearchFilter";
 
 const DOCUMENT_LABELS = {
   cedula_ciudadania: "C.C.",
@@ -13,6 +15,26 @@ const GENDER_LABELS = {
   femenino: "Femenino",
   otro: "Otro",
 };
+
+const CUSTOMERS_FILTER_GROUPS = [
+  {
+    key: "_activeStr",
+    options: [
+      { label: "Todos",    value: "__all__" },
+      { label: "Activo",   value: "true",  activeClass: "bg-green-500 text-white border-green-500" },
+      { label: "Inactivo", value: "false", activeClass: "bg-red-500 text-white border-red-500" },
+    ],
+  },
+  {
+    key: "gender",
+    options: [
+      { label: "Todos",      value: "__all__" },
+      { label: "Masculino",  value: "masculino" },
+      { label: "Femenino",   value: "femenino" },
+      { label: "Otro",       value: "otro" },
+    ],
+  },
+];
 
 function formatBirthDate(iso) {
   if (!iso) return "—";
@@ -58,17 +80,23 @@ function CustomersPage() {
     },
   });
 
-  const customers = data?.customers || [];
+  const rawCustomers = data?.customers || [];
 
-  const handleStatusChange = (customerId, currentIsActive, newValue) => {
-    const isActive = newValue === "true";
-    if (isActive === currentIsActive) return;
-    updateStatus({ customerId, isActive });
-  };
+  const customers = useMemo(
+    () => rawCustomers.map((c) => ({
+      ...c,
+      _activeStr: String(c.isActive !== false),
+      _addressSearch: c.addresses?.map((a) => `${a.streetAddress} ${a.city} ${a.phoneNumber}`).join(" ") ?? "",
+    })),
+    [rawCustomers]
+  );
 
-  const toggleExpand = (id) => {
-    setExpandedId((prev) => (prev === id ? null : id));
-  };
+  const { filtered, query, setQuery, activeFilters, setFilter, clearAll, activeCount } =
+    useSearchFilter({
+      data: customers,
+      searchFields: ["name", "email", "documentNumber", "gender", "dateOfBirth", "_addressSearch"],
+      filterGroups: CUSTOMERS_FILTER_GROUPS,
+    });
 
   return (
     <div className="space-y-6">
@@ -83,6 +111,19 @@ function CustomersPage() {
       {/* CUSTOMERS TABLE */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
+          <SearchAndFilter
+            query={query}
+            setQuery={setQuery}
+            filterGroups={CUSTOMERS_FILTER_GROUPS}
+            activeFilters={activeFilters}
+            setFilter={setFilter}
+            clearAll={clearAll}
+            activeCount={activeCount}
+            placeholder=""
+            resultCount={filtered.length}
+            totalCount={customers.length}
+          />
+
           {isLoading ? (
             <div className="flex justify-center py-12">
               <span className="loading loading-spinner loading-lg" />
@@ -92,10 +133,9 @@ function CustomersPage() {
               <p className="text-xl font-semibold mb-2">Error al cargar los clientes</p>
               <p className="text-sm">{error?.message ?? "Intente de nuevo más tarde"}</p>
             </div>
-          ) : customers.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-base-content/60">
               <p className="text-xl font-semibold mb-2">No se encontraron clientes registrados</p>
-              <p className="text-sm">Los clientes aparecerán aquí una vez que se registren</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -115,12 +155,11 @@ function CustomersPage() {
                 </thead>
 
                 <tbody>
-                  {customers.map((customer) => (
+                  {filtered.map((customer) => (
                     <Fragment key={customer._id}>
                       {/* MAIN ROW */}
                       <tr
-                        className="hover align-middle cursor-pointer"
-                        onClick={() => toggleExpand(customer._id)}
+                        className="hover align-middle"
                       >
                         <td className="flex items-center gap-3">
                           <div className="avatar">
@@ -211,7 +250,7 @@ function CustomersPage() {
                             className="select select-sm w-36"
                             value={String(customer.isActive !== false)}
                             onChange={(e) =>
-                              handleStatusChange(customer._id, customer.isActive !== false, e.target.value)
+                              updateStatus({customerId: customer._id, isActive: e.target.value === "true"})
                             }
                             onClick={(e) => e.stopPropagation()}
                             disabled={isPending}
