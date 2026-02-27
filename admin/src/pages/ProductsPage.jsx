@@ -53,7 +53,7 @@ function ProductsPage() {
   const products = useMemo(
     () => rawProducts.map((p) => ({
       ...p,
-      _stockStatus: p.stock === 0 ? "sinstock" : p.stock <= 5 ? "bajo" : "disponible",
+      _stockStatus: p.stock === 0 ? "sinstock" : p.stock < 10 ? "bajo" : "disponible",
     })),
     [rawProducts]
   );
@@ -195,7 +195,7 @@ function ProductsPage() {
                       <div className="w-24 h-24 rounded-xl bg-white flex items-center justify-center p-3 ring-1 ring-base-300">
                         <img 
                           className="w-full h-full object-contain"
-                          src={product.images[0] || '/placeholder.png'} 
+                          src={product.images?.[0] ?? "/placeholder.png"} 
                           alt={product.name} 
                         />
                       </div>

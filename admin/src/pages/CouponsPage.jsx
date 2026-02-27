@@ -194,7 +194,7 @@ export default function CouponsPage() {
                                     </td>
                                     <td>
                                         <button
-                                            onClick={() => updateMutation.mutate({id: coupon, isActive: !coupon.isActive})}
+                                            onClick={() => updateMutation.mutate({id: coupon._id, isActive: !coupon.isActive})}
                                             className={`badge border-none cursor-pointer ${
                                                 coupon.isActive
                                                     ? "bg-green-500 text-white"

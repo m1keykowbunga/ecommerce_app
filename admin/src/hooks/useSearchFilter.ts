@@ -39,7 +39,7 @@ export function useSearchFilter<T extends Record<string, unknown>>({
         let result = data;
 
         if (query.trim()) {
-            const q = query.toLowerCase();
+            const q = query.trim().toLowerCase();
             result = result.filter((item) =>
                 searchFields.some((field) => {
                     const val = field
@@ -61,7 +61,7 @@ export function useSearchFilter<T extends Record<string, unknown>>({
         });
 
         return result;
-    }, [data, query, activeFilters]);
+    }, [data, query, activeFilters, searchFields]);
 
     const setFilter = (key: string, value: string): void =>
         setActiveFilters((prev) => ({ ...prev, [key]: value }));
