@@ -1,5 +1,6 @@
 import { User } from "../models/user.model.js";
 import { sendMarketingSubscriptionEmail } from "../services/email.service.js";
+import mongoose from "mongoose";
 
 export async function addAddress(req, res) {
     try {
@@ -100,15 +101,27 @@ export async function addToWishlist(req, res) {
         const { productId } = req.body;
         const user = req.user;
 
+        // 🛡️ VALIDACIÓN CLAVE: Si el ID no es de MongoDB (ej: "1", "4"), rechazamos elegantemente
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            console.warn(`⚠️ Intento de agregar ID inválido a wishlist: ${productId}`);
+            return res.status(400).json({ 
+                error: "El producto seleccionado es de prueba (local) y no existe en la base de datos." 
+            });
+        }
+
         if (user.wishlist.includes(productId)) {
             return res.status(400).json({ error: "Product already in wishlist" });
         }
 
         user.wishlist.push(productId);
-        await user.save();
+        await user.save(); // <--- Aquí es donde antes ocurría el CastError
 
-        return res.status(200).json({ message: "Product added to wishlist", wishlist: user.wishlist });
+        return res.status(200).json({ 
+            message: "Product added to wishlist", 
+            wishlist: user.wishlist 
+        });
     } catch (error) {
+        // Ahora este log solo capturará errores reales del servidor, no errores de casting
         console.error("Error in addToWishlist controller:", error);
         return res.status(500).json({ error: "Internal server error" });
     }

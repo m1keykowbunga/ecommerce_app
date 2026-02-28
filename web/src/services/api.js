@@ -1,36 +1,45 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-// Log de depuración para verificar la URL en la demo
+// Log de depuración para verificar la URL
 console.log("🔍 Mi URL de API es:", import.meta.env.VITE_API_URL);
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  // Priorizamos la URL de entorno, si no, usamos tu ngrok actual
+  baseURL: import.meta.env.VITE_API_URL || "https://yaretzi-asbestous-jerrell.ngrok-free.dev/api",
   timeout: 10000,
-  withCredentials: true,
+  withCredentials: true, 
   headers: {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': 'true' // <--- VITAL para que la App y Web carguen vía ngrok
+    'Accept': 'application/json',
+    'ngrok-skip-browser-warning': 'true' // VITAL para evitar la pantalla de aviso de ngrok
   },
 });
 
-// ─── Singleton para getToken de Clerk ────────────────────────────────────────
+// ─── Singleton para el getter del token ──────────────────────────────────────
 let _getToken = null;
+
+/**
+ * Conecta la función getToken de Clerk con la instancia de Axios
+ */
 export const setTokenGetter = (fn) => {
+  console.log("🔗 API: Token getter vinculado correctamente");
   _getToken = fn;
 };
 
-// ─── Request interceptor — adjunta token Clerk a cada petición ───────────────
+// ─── Interceptor de Peticiones (Request) ─────────────────────────────────────
 api.interceptors.request.use(
   async (config) => {
     if (_getToken) {
       try {
+        // Obtenemos el token de Clerk de forma asíncrona
         const token = await _getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          // console.log("🔑 Token adjuntado a la petición"); // Descomenta para debuggear
         }
-      } catch {
-        // Usuario no autenticado — la petición continúa sin token
+      } catch (error) {
+        console.error("❌ Error obteniendo el token de Clerk:", error);
       }
     }
     return config;
@@ -38,54 +47,46 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ─── Response interceptor — manejo global de errores ─────────────────────────
+// ─── Interceptor de Respuestas (Response) ────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      const { status, data } = error.response;
+    // Si no hay respuesta del servidor (Error de red / Ngrok caído)
+    if (!error.response) {
+      console.warn('📡 Sin conexión al servidor — el sistema podría usar datos locales.');
+      return Promise.reject(error);
+    }
 
-      switch (status) {
-        case 401:
-          // No redirigir automáticamente — Clerk maneja la sesión
-          break;
+    const { status, data } = error.response;
 
-        case 403:
-          toast.error('No tienes permisos para realizar esta acción.');
-          break;
+    switch (status) {
+      case 401:
+        // El backend rechazó el token. 
+        console.warn("🚫 401: Token inválido o expirado");
+        break;
 
-        case 404:
-          // No mostrar toast para 404 — los hooks lo manejan con fallback a mock
-          break;
+      case 403:
+        toast.error('Acceso denegado: No tienes permisos.');
+        break;
 
-        case 422:
-          if (data?.error?.details) {
-            Object.values(data.error.details).forEach((msg) => {
-              toast.error(msg);
-            });
-          }
-          break;
+      case 422:
+        // Errores de validación
+        const msg = data?.message || data?.error || 'Datos inválidos';
+        toast.error(msg);
+        break;
 
-        case 429:
-          toast.error('Demasiadas solicitudes. Por favor espera un momento.');
-          break;
+      case 500:
+        // Si no es un error de "Producto no encontrado" manejado, mostrar toast
+        if (!data?.error?.includes("Cast to ObjectId")) {
+           toast.error('Error interno del servidor. Revisa la terminal del backend.');
+        }
+        break;
 
-        case 500:
-          toast.error('Error del servidor. Por favor intenta más tarde.');
-          break;
-
-        default:
-          if (status >= 500) {
-            toast.error(
-              data?.message ||
-                data?.error?.message ||
-                'Ocurrió un error. Por favor intenta nuevamente.'
-            );
-          }
-      }
-    } else if (error.request) {
-      // No mostrar toast aquí — los hooks hacen fallback a datos mock
-      console.warn('Sin conexión al servidor — usando datos locales');
+      default:
+        // Errores generales
+        if (status >= 500) {
+          toast.error('Ocurrió un error inesperado en el servidor.');
+        }
     }
 
     return Promise.reject(error);
@@ -93,4 +94,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-

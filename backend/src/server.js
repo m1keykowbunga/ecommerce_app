@@ -22,35 +22,32 @@ const app = express();
 const __dirname = path.resolve();
 
 const corsOptions = {
-  origin: ENV.NODE_ENV === "production" 
-    ? ENV.CLIENT_URL  
-    : function (origin, callback) {
-        // Permitir peticiones sin origen (Postman o apps nativas)
-        if (!origin) return callback(null, true);
-        
-        // Patrones de Andrea: Detectan localhost, IPs de WiFi y Expo automáticamente
-        const localPatterns = [
-          /^http:\/\/localhost(:\d+)?$/,
-          /^http:\/\/127\.0\.0\.1(:\d+)?$/,
-          /^http:\/\/10\.0\.2\.2(:\d+)?$/,       // Emulador Android
-          /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/, // Red local WiFi
-          /^http:\/\/172\.\d+\.\d+\.\d+(:\d+)?$/, // Docker / otras redes locales
-          /^exp:\/\//,                             // Expo Go
-        ];
+  origin: function (origin, callback) {
+    // 1. Permitir peticiones sin origen (Móvil/Postman)
+    if (!origin) return callback(null, true);
 
-        // Tu mejora: Soporte para Ngrok
-        const isNgrok = origin.includes('ngrok-free.app') || origin.includes('ngrok.io');
-        
-        // Verificación combinada
-        if (localPatterns.some((pattern) => pattern.test(origin)) || isNgrok) {
-          return callback(null, true);
-        }
-        
-        callback(new Error('Not allowed by CORS'));
-      },
+    // 2. Definir dominios permitidos
+    const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+    const isNgrok = origin.includes('ngrok-free.app') || origin.includes('ngrok.io');
+    const isExpo = origin.startsWith('exp://');
+
+    if (isLocal || isNgrok || isExpo) {
+      callback(null, true);
+    } else {
+      console.log("🚫 Origen bloqueado por CORS:", origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'clerk-session-id', 'ngrok-skip-browser-warning']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'clerk-session-id', 
+    'ngrok-skip-browser-warning',
+    'x-clerk-auth-token'
+  ],
+  optionsSuccessStatus: 200 // 👈 VITAL para navegadores antiguos y preflight
 };
 
 app.use(cors(corsOptions));
@@ -95,13 +92,14 @@ app.get("/", (req, res) => {
   });
 });
 
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/coupons", couponRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/coupons", couponRoutes);
+
 
 app.get("/api/health", (req, res) => {
     res.status(200).json({ message: "Success" });

@@ -11,54 +11,55 @@ const useWishlist = () => {
   const { data: wishlist = [], isLoading } = useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
-      try {
-        const res = await api.get('/users/wishlist');
-        // 🛡️ Extraemos los datos sin importar cómo los mande el backend
-        const rawData = res.data?.wishlist || res.data?.data || res.data;
-        return Array.isArray(rawData) ? rawData : [];
-      } catch (error) {
-        console.error("Error en Wishlist:", error);
-        return []; // Retorna array vacío para que .some() no explote
-      }
+      const res = await api.get('/users/wishlist');
+      const rawData = res.data?.wishlist || res.data?.data || res.data;
+      return Array.isArray(rawData) ? rawData : [];
     },
-    enabled: isAuthenticated,
-    initialData: [], // 👈 Vital para que el primer render no sea undefined
+    enabled: !!isAuthenticated, // Solo se ejecuta si hay usuario
+    staleTime: 0, 
+    refetchOnMount: true, // Re-sincroniza al entrar a la página
   });
 
   const addMutation = useMutation({
-    mutationFn: (productId) => api.post('/users/wishlist', { productId }).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wishlist'] }),
-    onError: () => toast.error('Error al agregar a favoritos'),
+    mutationFn: (productId) => {
+      // 🛡️ VALIDACIÓN CRÍTICA: No enviar IDs que no sean de MongoDB (24 caracteres)
+      if (productId.length < 10) { 
+        throw new Error("Este es un producto local/mock y no puede guardarse en la DB real.");
+      }
+      return api.post('/users/wishlist', { productId }).then((r) => r.data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+      toast.success('Agregado a favoritos');
+    },
+    onError: (error) => {
+      const msg = error.message || 'Error al agregar a favoritos';
+      toast.error(msg);
+    },
   });
 
   const removeMutation = useMutation({
     mutationFn: (productId) => api.delete(`/users/wishlist/${productId}`).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wishlist'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+      toast.success('Eliminado de favoritos');
+    },
     onError: () => toast.error('Error al eliminar de favoritos'),
   });
 
   const isInWishlist = (product) => {
     const id = getProductId(product);
-    if (!id) return false;
-    
-    // 🛡️ Blindaje: Si wishlist no es un array, no intentes usar .some()
-    if (!Array.isArray(wishlist)) {
-      console.warn("Wishlist no es un array, valor actual:", wishlist);
-      return false;
-    }
-
     return wishlist.some((item) => (item._id || item.id || item) === id);
   };
 
   const toggleItem = (product) => {
     const id = getProductId(product);
     if (!id) return;
+
     if (isInWishlist(product)) {
       removeMutation.mutate(id);
-      toast.success('Eliminado de favoritos');
     } else {
       addMutation.mutate(id);
-      toast.success('Agregado a favoritos');
     }
   };
 

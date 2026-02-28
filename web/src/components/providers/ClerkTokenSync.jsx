@@ -1,19 +1,20 @@
-import { useEffect } from 'react';
+// src/components/providers/ClerkTokenSync.jsx
 import { useAuth } from '@clerk/clerk-react';
-import { setTokenGetter } from '../../services/api';
+import { useEffect } from 'react';
+import { setTokenGetter } from '../../services/api'; // Importa la función que viste "atravesada"
 
-/**
- * ClerkTokenSync — componente sin UI que sincroniza el getter
- * de tokens de Clerk con el interceptor de axios.
- * Debe estar dentro del árbol de <ClerkProvider>.
- */
 const ClerkTokenSync = () => {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
 
   useEffect(() => {
-    setTokenGetter(getToken);
-    return () => setTokenGetter(null);
-  }, [getToken]);
+    if (isSignedIn) {
+      console.log("✅ ClerkTokenSync: Sincronizando token con API");
+      // Aquí es donde "enchufas" Clerk a tu archivo api.js
+      setTokenGetter(getToken);
+    } else {
+      setTokenGetter(null);
+    }
+  }, [getToken, isSignedIn]);
 
   return null;
 };

@@ -1,4 +1,5 @@
 import { Coupon } from "../models/coupon.model.js";
+import { Order } from "../models/order.model.js";
 
 export const validateCoupon = async (req, res) => {
     try {
@@ -29,6 +30,18 @@ export const validateCoupon = async (req, res) => {
 
         if (alreadyUsed) {
             return res.status(400).json({ error: "Ya usaste este cupón anteriormente." });
+        }
+
+        if (coupon.firstOrderOnly) {
+            const orderCount = await Order.countDocuments({
+                clerkId: req.user.clerkId,
+                status: { $in: ["paid", "delivered", "in_preparation", "ready"] },
+            });
+            if (orderCount > 0) {
+                return res.status(400).json({
+                    error: "Este cupón es válido solo para tu primera compra.",
+                });
+            }
         }
 
         let discountAmount = 0;
@@ -150,6 +163,29 @@ export const deleteCoupon = async (req, res) => {
         return res.status(200).json({ message: "Cupón eliminado correctamente." });
     } catch (error) {
         console.error("Error in deleteCoupon:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const getActiveCoupons = async (req, res) => {
+    try {
+        const now = new Date();
+        const coupons = await Coupon.find({
+            isActive: true,
+            $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+        }).select("code discountType discountValue expiresAt firstOrderOnly").lean();
+
+        const result = coupons.map((c) => ({
+            code: c.code,
+            discountType: c.discountType,
+            discountValue: c.discountValue,
+            firstOrderOnly: c.firstOrderOnly ?? false,
+            expiresAt: c.expiresAt,
+        }));
+
+        return res.status(200).json({ coupons: result });
+    } catch (error) {
+        console.error("Error in getActiveCoupons:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
