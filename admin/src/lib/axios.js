@@ -1,8 +1,17 @@
 import axios from "axios";
 
+// Log de depuración para verificar la URL
+console.log("🔍 Mi URL de API es:", import.meta.env.VITE_API_URL);
+
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
-    timeout: 15000,
+    baseURL: import.meta.env.VITE_API_URL || "https://yaretzi-asbestous-jerrell.ngrok-free.dev/api",
+    timeout: 10000,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // VITAL para evitar la pantalla de aviso de ngrok
+    },
 });
 
 let getTokenFunction = null;
@@ -20,7 +29,7 @@ axiosInstance.interceptors.request.use(
             const skipCache = config.headers['X-Retry-Request'] === 'true';
 
             const token = await getTokenFunction({
-                template: "mobile-app-token",
+                template: "app-jwt",
                 skipCache,
             });
 

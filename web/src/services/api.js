@@ -12,8 +12,9 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'ngrok-skip-browser-warning': 'true' // VITAL para evitar la pantalla de aviso de ngrok
+    'ngrok-skip-browser-warning': 'true' || '69420' // VITAL para evitar la pantalla de aviso de ngrok
   },
+  withCredentials: true
 });
 
 // ─── Singleton para el getter del token ──────────────────────────────────────

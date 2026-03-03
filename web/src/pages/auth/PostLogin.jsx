@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Loading from '../../components/common/Loading';
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'admin@donpalitojr.com';
-const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5173';
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || "https://yaretzi-asbestous-jerrell.ngrok-free.dev/api";
 
 /**
  * Página intermedia post-login de Clerk.

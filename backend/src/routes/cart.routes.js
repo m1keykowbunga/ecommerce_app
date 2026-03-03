@@ -4,7 +4,7 @@ import { addToCart, clearCart, getCart, removeFromCart, updateCartItem } from ".
 
 const router = Router();
 
-router.use(protectRoute);
+//router.use(protectRoute);
 
 router.get("/", getCart);
 router.post("/", addToCart);

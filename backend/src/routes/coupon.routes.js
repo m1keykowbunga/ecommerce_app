@@ -4,6 +4,8 @@ import { validateCoupon, createCoupon, getCoupons, updateCoupon, deleteCoupon, g
 
 const router = Router();
 
+router.use(protectRoute);
+
 router.get("/active", getActiveCoupons); // público — para el marquee del Home
 router.post("/validate", protectRoute, validateCoupon);
 router.get("/", protectRoute, adminOnly, getCoupons);

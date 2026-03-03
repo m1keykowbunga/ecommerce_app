@@ -1,0 +1,11 @@
+version: "2"
+authtoken: 39lY8AKFbInUqNXbkL2a4djvpO6_4eZEy2izkBpqtxGydFAca 
+tunnels:
+  frontend:
+    proto: http
+    addr: 5173
+    domain: yaretzi-asbestous-jerrell.ngrok-free.dev
+  backend:
+    proto: http
+    addr: 3000
+    

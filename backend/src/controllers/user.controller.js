@@ -197,6 +197,7 @@ export async function updateNotificationPreferences(req, res) {
 }
 
 export async function getProfile(req, res) {
+    console.log("🔍 Depurando getProfile. req.user es:", req.user);
     try {
         const user = req.user;
         return res.status(200).json({

@@ -20,8 +20,31 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    open: true,
-    allowedHosts: ['.ngrok-free.app', '.ngrok-free.dev'] // Permite conexiones desde dominios ngrok
+    strictPort: true,
+    // Eliminamos 'open: true' para que no abra mil pestañas al usar ngrok
+    allowedHosts: [
+      '.ngrok-free.app', 
+      '.ngrok-free.dev', 
+      'yaretzi-asbestous-jerrell.ngrok-free.dev'
+    ],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+        // 🛡️ CORRECCIÓN: Si tu backend en Node ya espera las rutas con "/api" 
+        // (ej: app.use('/api', routes)), NO debes usar rewrite.
+        // Si tu backend NO usa el prefijo /api, deja el rewrite.
+        // Lo normal es quitarlo para que coincida con tu .env
+        // rewrite: (path) => path.replace(/^\/api/, ''), 
+      },
+    },
+    // 🚀 CORRECCIÓN HMR: Esto arregla el error "failed to connect to websocket"
+    hmr: {
+      protocol: 'wss',
+      host: 'yaretzi-asbestous-jerrell.ngrok-free.dev',
+      clientPort: 443,
+    },
   },
   build: {
     outDir: 'dist',
@@ -41,6 +64,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
+    include: ['react', 'react-dom', 'react-router-dom', 'axios'],
   },
 })

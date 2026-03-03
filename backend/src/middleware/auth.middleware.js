@@ -6,26 +6,28 @@ export const protectRoute = [
     requireAuth(),
     async (req, res, next) => {
         try {
-            // 1. REVISIÓN: En nuevas versiones es un objeto, no una función
-            const auth = req.auth; 
+            // 1. COMPATIBILIDAD TOTAL: Detectamos si es función u objeto
+            // Esto soluciona el Warning de deprecación y el error de undefined
+            const auth = typeof req.auth === 'function' ? req.auth() : req.auth;
             const clerkId = auth?.userId;
 
             if (!clerkId) {
-                console.log("❌ No se encontró clerkId en req.auth");
+                console.log("❌ No se encontró clerkId. Auth status:", auth?.status);
                 return res.status(401).json({ message: "Unauthorized - Invalid token" });
             }
 
-            // 2. Buscamos el usuario en TU base de datos de MongoDB
+            // 2. Buscamos el usuario en MongoDB
             const user = await User.findOne({ clerkId });
             
             if (!user) {
                 console.log(`⚠️ Usuario con clerkId ${clerkId} no existe en MongoDB`);
+                // Si estás en desarrollo, podrías querer redirigir a un registro
                 return res.status(404).json({ message: "User not found in database" });
             }
 
             // 3. Inyectamos los datos para los controladores
             req.user = user;
-            req.clerkAuth = auth;
+            req.clerkAuth = auth; // Guardamos el objeto auth procesado
             
             next();
         } catch (error) {

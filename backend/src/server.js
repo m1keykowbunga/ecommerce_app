@@ -21,36 +21,57 @@ import "./services/email.service.js";
 const app = express();
 const __dirname = path.resolve();
 
+// --- En tu server.js ---
+
 const corsOptions = {
+  
   origin: function (origin, callback) {
-    // 1. Permitir peticiones sin origen (Móvil/Postman)
+    // Si no hay origen (Postman/Mobile) o es uno de los permitidos
     if (!origin) return callback(null, true);
 
-    // 2. Definir dominios permitidos
     const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
-    const isNgrok = origin.includes('ngrok-free.app') || origin.includes('ngrok.io');
-    const isExpo = origin.startsWith('exp://');
+    const isNgrok = origin.includes('ngrok-free.dev') || origin.includes('ngrok-free.app') || origin.includes('ngrok.io');
+    const isExpo = origin.startsWith('exp://') || origin.includes('expo.io');
 
     if (isLocal || isNgrok || isExpo) {
       callback(null, true);
     } else {
-      console.log("🚫 Origen bloqueado por CORS:", origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
+  credentials: true, // Esto es vital
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
     'clerk-session-id', 
     'ngrok-skip-browser-warning',
-    'x-clerk-auth-token'
+    'x-clerk-auth-token',
+    'x-requested-with'
   ],
-  optionsSuccessStatus: 200 // 👈 VITAL para navegadores antiguos y preflight
+  optionsSuccessStatus: 200 
 };
 
+// 1. Aplica el middleware de CORS normal
 app.use(cors(corsOptions));
+
+// 2. NUEVO: Middleware forzado para asegurar Credentials y Headers de Ngrok
+// Pon esto JUSTO DEBAJO de app.use(cors(corsOptions))
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  // Si el origen está en nuestra lista blanca (podemos simplificar aquí para testeo)
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, clerk-session-id, ngrok-skip-browser-warning, x-clerk-auth-token, x-requested-with");
+  
+  // Manejo manual de pre-flight (OPTIONS) para evitar el error de PathError anterior
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 
 app.use(
   "/api/payment",
@@ -107,7 +128,7 @@ app.get("/api/health", (req, res) => {
 
 if (ENV.NODE_ENV === "production") {
     app.use(express.static(path.join(__dirname, "../admin/dist")));
-    app.get("/{*any}", (req, res) => {
+    app.get("*", (req, res) => {
         res.sendFile(path.join(__dirname, "../admin", "dist", "index.html"));
     });
 }

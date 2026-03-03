@@ -15,7 +15,7 @@ router.put("/addresses/:addressId", updateAddress);
 router.delete("/addresses/:addressId", deleteAddress);
 
 router.post("/wishlist", addToWishlist);
-router.get("/wishlist", getWishlist);
+router.get("/wishlist", protectRoute, getWishlist);
 router.delete("/wishlist/:productId", removeFromWishlist);
 
 router.put("/notification-preferences", updateNotificationPreferences);
