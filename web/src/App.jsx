@@ -56,7 +56,7 @@ import Checkout from './pages/checkout/Checkout';
 import CheckoutSuccess from './pages/checkout/CheckoutSuccess';
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5173';
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'https://yaretzi-asbestous-jerrell.ngrok-free.dev';
 
 const queryClient = new QueryClient({
   defaultOptions: {

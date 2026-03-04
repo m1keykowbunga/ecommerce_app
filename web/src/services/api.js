@@ -37,7 +37,12 @@ api.interceptors.request.use(
         const token = await _getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          // console.log("🔑 Token adjuntado a la petición"); // Descomenta para debuggear
+            console.log("🔑 Token adjuntado a la petición"); // Descomenta para debuggear
+            // 🚨 LOG DE DEPURACIÓN CRÍTICO
+            console.log("------- 🛑 ERROR DE API DETECTADO -------");
+            console.log(`📡 Ruta: ${originalRequest?.url}`);
+            console.log(`🔢 Status: ${error.response?.status}`);
+            console.log(`📝 Mensaje:`, error.response?.data || error.message);
         }
       } catch (error) {
         console.error("❌ Error obteniendo el token de Clerk:", error);
