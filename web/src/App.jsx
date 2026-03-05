@@ -1,6 +1,4 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ClerkProvider } from '@clerk/clerk-react';
-import { esES } from '@clerk/localizations';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -31,10 +29,6 @@ import NotFound from './pages/NotFound';
 
 // Auth pages
 import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import PostLogin from './pages/auth/PostLogin';
 
 // Account inactive
 import AccountInactive from './pages/AccountInactive';
@@ -56,7 +50,6 @@ import Checkout from './pages/checkout/Checkout';
 import CheckoutSuccess from './pages/checkout/CheckoutSuccess';
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'https://yaretzi-asbestous-jerrell.ngrok-free.dev';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,97 +60,65 @@ const queryClient = new QueryClient({
   },
 });
 
-// Redirige al panel admin externo
-const AdminRedirect = () => {
-  window.location.href = ADMIN_URL;
-  return null;
-};
-
-function AppRoutes() {
-  return (
-    <AuthProvider>
-      <CartProvider>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              {/* Públicas */}
-              <Route index element={<Home />} />
-              <Route path="catalogo" element={<Catalog />} />
-              <Route path="producto/:id" element={<ProductDetail />} />
-              <Route path="carrito" element={<Cart />} />
-
-              {/* Auth */}
-              <Route path="login" element={<Login />} />
-              <Route path="post-login" element={<PostLogin />} />
-              <Route path="registro" element={<Register />} />
-              <Route path="recuperar-password" element={<ForgotPassword />} />
-              <Route path="restablecer-password/:token" element={<ResetPassword />} />
-
-              {/* Cuenta inactiva */}
-              <Route path="cuenta-inactiva" element={<AccountInactive />} />
-
-              {/* Info */}
-              <Route path="contacto" element={<Contact />} />
-              <Route path="sobre-nosotros" element={<About />} />
-              <Route path="preguntas-frecuentes" element={<FAQ />} />
-              <Route path="terminos-condiciones" element={<Terms />} />
-              <Route path="politica-privacidad" element={<Privacy />} />
-              <Route path="politica-cookies" element={<Cookies />} />
-
-              {/* Protegidas */}
-              <Route path="perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="perfil/favoritos" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
-              <Route path="perfil/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-              <Route path="perfil/pedidos/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
-              <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-              <Route path="checkout/exito" element={<ProtectedRoute><CheckoutSuccess /></ProtectedRoute>} />
-            </Route>
-
-            {/* Admin → redirige al proyecto admin externo */}
-            <Route path="admin/*" element={<AdminRedirect />} />
-
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-
-          <CookieBanner />
-
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            theme="light"
-          />
-        </Router>
-      </CartProvider>
-    </AuthProvider>
-  );
-}
-
 function App() {
-  if (!CLERK_KEY) {
-    // Sin Clerk key — modo desarrollo sin auth
-    return (
-      <QueryClientProvider client={queryClient}>
-        <AppRoutes />
-      </QueryClientProvider>
-    );
-  }
-
   return (
-    <ClerkProvider
-      publishableKey={CLERK_KEY}
-      localization={esES}
-    >
-      <QueryClientProvider client={queryClient}>
-        {/* Sincroniza el getter de token de Clerk con el interceptor de axios */}
-        <ClerkTokenSync />
-        <AppRoutes />
-      </QueryClientProvider>
-    </ClerkProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <CartProvider>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <ScrollToTop />
+            {/* Sincroniza el token de Clerk con el interceptor de axios (solo si Clerk está activo) */}
+            {CLERK_KEY && <ClerkTokenSync />}
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                {/* Públicas */}
+                <Route index element={<Home />} />
+                <Route path="catalogo" element={<Catalog />} />
+                <Route path="producto/:id" element={<ProductDetail />} />
+                <Route path="carrito" element={<Cart />} />
+
+                {/* Auth */}
+                <Route path="login" element={<Login />} />
+
+
+                {/* Cuenta inactiva */}
+                <Route path="cuenta-inactiva" element={<AccountInactive />} />
+
+                {/* Info */}
+                <Route path="contacto" element={<Contact />} />
+                <Route path="sobre-nosotros" element={<About />} />
+                <Route path="preguntas-frecuentes" element={<FAQ />} />
+                <Route path="terminos-condiciones" element={<Terms />} />
+                <Route path="politica-privacidad" element={<Privacy />} />
+                <Route path="politica-cookies" element={<Cookies />} />
+
+                {/* Protegidas */}
+                <Route path="perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="perfil/favoritos" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+                <Route path="perfil/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+                <Route path="perfil/pedidos/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
+                <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                <Route path="checkout/exito" element={<ProtectedRoute><CheckoutSuccess /></ProtectedRoute>} />
+              </Route>
+
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+
+            <CookieBanner />
+
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              theme="light"
+            />
+          </Router>
+        </CartProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

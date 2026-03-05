@@ -61,34 +61,6 @@ const AuthScreen = () => {
               )}
             </TouchableOpacity>
 
-            {/* APPLE */}
-            <TouchableOpacity
-              className="flex-row items-center justify-center bg-white border border-gray-300 rounded-full px-6 py-3"
-              onPress={() => handleSocialAuth("oauth_apple")}
-              disabled={loadingStrategy !== null}
-              accessibilityLabel="Continuar con Apple"
-              accessibilityRole="button"
-              style={{
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                elevation: 2,
-              }}
-            >
-              {loadingStrategy === "oauth_apple" ? (
-                <ActivityIndicator size="small" color="#5B3A29" />
-              ) : (
-                <View className="flex-row items-center justify-center">
-                  <Image
-                    source={require("../../assets/images/apple.png")}
-                    className="w-8 h-8 mr-3"
-                    resizeMode="contain"
-                  />
-                  <Text className="text-text-primary font-medium text-base">
-                    Continuar con Apple
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
           </View>
 
           <Text className="text-center text-text-muted text-xs leading-4 mt-6 px-2">
