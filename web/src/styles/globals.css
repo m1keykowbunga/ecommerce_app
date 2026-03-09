@@ -6,9 +6,12 @@
 
 @layer base {
   * {
-    @apply border-ui-border;
+    /* En lugar de @apply, usamos el valor directo para asegurar el build */
+    border-color: #999999; 
+    border-style: solid;
+    border-width: 0; /* Tailwind por defecto usa 0, evita bordes fantasma */
   }
-
+  
   body {
     @apply bg-ui-background text-text-primary;
     font-family: 'Inter', system-ui, sans-serif;
