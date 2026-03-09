@@ -110,18 +110,20 @@ app.get("/api/health", (req, res) => {
 // --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS ---
 const isProd = process.env.NODE_ENV === 'production';
 
-// Como el servidor corre desde 'backend', bajamos un nivel para entrar a 'web' o 'admin'
-const webPath = path.join(__dirname, "../web/dist");
-const adminPath = path.join(__dirname, "../admin/dist");
+// Render pone los archivos en /opt/render/project/src/
+// Con path.resolve() y los '..', nos aseguramos de subir un nivel desde 'backend'
+const webPath = path.join(__dirname, "web/dist");
+const adminPath = path.join(__dirname, "admin/dist");
 
 app.use(express.static(webPath));
 app.use("/admin", express.static(adminPath));
 
-// Manejadores SPA (Mantenlos igual)
-app.get("/admin/*", (req, res) => {
+// 🚨 CORRECCIÓN CRÍTICA: Cambiamos "/*" por "/(.*)" para Node 22
+app.get("/admin/(.*)", (req, res) => {
     res.sendFile(path.join(adminPath, "index.html"));
 });
 
+// Para cualquier otra ruta que no sea API o Admin, sirve el Frontend
 app.get(/^(?!\/api|\/admin).+/, (req, res) => {
     res.sendFile(path.join(webPath, "index.html"));
 });
