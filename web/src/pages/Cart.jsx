@@ -47,7 +47,7 @@ const Cart = () => {
 
       try {
         // Cambia esto en Cart.jsx:
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/create-checkout-session`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/payment/create-checkout-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
