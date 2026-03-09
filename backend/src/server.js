@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { clerkMiddleware } from '@clerk/express';
 import cors from "cors";
+import Stripe from 'stripe';
 
 import { User } from "./models/user.model.js"; 
 import { ENV } from "./config/env.js";
@@ -20,12 +21,18 @@ import "./services/email.service.js";
 
 const app = express();
 const __dirname = path.resolve();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// --- 1. CONFIGURACIÓN DE CORS (Híbrido Local/Render) ---
-const corsOptions = {
+// --- 1. CONFIGURACIÓN DE CORS ---
+const allowedOrigins = [
+  'https://don-palito-jr.onrender.com', 
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+app.use(cors({
   origin: function (origin, callback) {
-    // Permitimos localhost, ngrok y cualquier subdominio de onrender.com
-    if (!origin || origin.includes('localhost') || origin.includes('ngrok') || origin.includes('onrender.com')) {
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('ngrok') || origin.includes('onrender.com')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -33,27 +40,9 @@ const corsOptions = {
   },
   credentials: true,
   optionsSuccessStatus: 200 
-};
+}));
 
-app.use(cors(corsOptions));
-
-// Refuerzo de headers (Necesario para navegadores y proxies)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && (origin.includes('localhost') || origin.includes('ngrok') || origin.includes('onrender.com'))) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-  }
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, clerk-session-id, ngrok-skip-browser-warning, x-clerk-auth-token, x-requested-with");
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
-// --- 2. MIDDLEWARES DE PARSEO ---
+// --- 2. MIDDLEWARE DE STRIPE WEBHOOK (DEBE IR ANTES DE EXPRESS.JSON) ---
 app.use(
   "/api/payment",
   (req, res, next) => {
@@ -66,9 +55,38 @@ app.use(
   paymentRoutes
 );
 
+// Middleware general para el resto de rutas
 app.use(express.json());
 
-// --- 3. WEBHOOK DE CLERK ---
+// --- 3. ENDPOINT DE STRIPE CHECKOUT (UNIFICADO) ---
+// Mantenemos esta ruta para que coincida con tu Cart.jsx
+app.post('/api/payment/create-checkout-session', async (req, res) => {
+    try {
+        const { items } = req.body;
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: items.map(item => ({
+                price_data: {
+                    currency: 'cop',
+                    product_data: {
+                        name: item.name || item.nombre,
+                    },
+                    unit_amount: Math.round((item.price || item.precio) * 100),
+                },
+                quantity: item.quantity || item.cantidad,
+            })),
+            mode: 'payment',
+            success_url: `${process.env.FRONTEND_URL}/success`,
+            cancel_url: `${process.env.FRONTEND_URL}/carrito`,
+        });
+        res.json({ id: session.id });
+    } catch (error) {
+        console.error("❌ Error en Stripe:", error);
+        res.status(500).json({ error: "No se pudo crear la sesión de pago" });
+    }
+});
+
+// --- 4. WEBHOOK DE CLERK ---
 app.post("/api/webhooks/clerk", async (req, res) => {
   const { data, type } = req.body;
   try {
@@ -92,9 +110,10 @@ app.post("/api/webhooks/clerk", async (req, res) => {
   }
 });
 
+// Clerk Middleware (Después de Webhooks para evitar conflictos de firmas)
 app.use(clerkMiddleware());
 
-// --- 4. RUTAS DE LA API ---
+// --- 5. RUTAS DE LA API ---
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);
@@ -107,70 +126,28 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
 });
 
-// --- CONFIGURACIÓN DE STRIPE ---
-import Stripe from 'stripe';
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-// Endpoint para crear la sesión de pago
-app.post('/api/create-checkout-session', async (req, res) => {
-    try {
-        const { items } = req.body; // Recibimos el carrito del front
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: items.map(item => ({
-                price_data: {
-                    currency: 'cop', // Pesos colombianos
-                    product_data: {
-                        name: item.name || item.nombre,
-                        // Si tienes imágenes en Cloudinary, pásalas aquí:
-                        // images: [item.image || item.imagen],
-                    },
-                    unit_amount: Math.round((item.price || item.precio) * 100),
-                },
-                quantity: item.quantity || item.cantidad,
-            })),
-            mode: 'payment',
-            // Usamos las variables de entorno de Render
-            success_url: `${process.env.FRONTEND_URL}/success`,
-            cancel_url: `${process.env.FRONTEND_URL}/cart`,
-        });
-
-        res.json({ id: session.id });
-    } catch (error) {
-        console.error("❌ Error en Stripe:", error);
-        res.status(500).json({ error: "No se pudo crear la sesión de pago" });
-    }
-});
-
-
-// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS ---
+// --- 6. SERVICIO DE ARCHIVOS ESTÁTICOS ---
 const webPath = path.join(__dirname, "web/dist");
 const adminPath = path.join(__dirname, "admin/dist");
 
 app.use(express.static(webPath));
 app.use("/admin", express.static(adminPath));
 
-// 1. Manejador para el Admin
-// Usamos un regex que atrape todo lo que empiece por /admin
 app.get(/^\/admin(\/.*)?$/, (req, res) => {
     res.sendFile(path.join(adminPath, "index.html"));
 });
 
-// 2. Manejador para el Frontend (Cualquier cosa que NO sea /api ni /admin)
 app.get(/^(?!\/(api|admin)).*$/, (req, res) => {
     res.sendFile(path.join(webPath, "index.html"));
 });
 
-// --- 6. ARRANQUE ---
+// --- 7. ARRANQUE ---
 const startServer = async () => {
     try {
         await connectDB();
         const PORT = ENV.PORT || 3000;
         app.listen(PORT, '0.0.0.0', () => {
           console.log(`🚀 Servidor en puerto ${PORT}`);
-          console.log(`📂 Web Path: ${webPath}`);
-          console.log(`📂 Admin Path: ${adminPath}`);
         });
     } catch (error) {
         console.error("Fallo crítico:", error);
