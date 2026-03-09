@@ -1,0 +1,9 @@
+{
+  "name": "don-palito-root",
+  "scripts": {
+    "install-all": "npm install --prefix backend && npm install --prefix web && npm install --prefix admin",
+    "build-all": "npm run build --prefix web && npm run build --prefix admin",
+    "build": "npm run install-all && npm run build-all",
+    "start": "node backend/src/server.js"
+  }
+}
