@@ -1,13 +1,14 @@
 import express from "express";
 import path from "path";
 import { clerkMiddleware } from '@clerk/express';
-import { serve } from "inngest/express";
 import cors from "cors";
 
-import { functions, inngest } from "./config/inngest.js";
+import { User } from "./models/user.model.js"; 
+
 import { ENV } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 
+// Rutas
 import adminRoutes from "./routes/admin.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import orderRoutes from "./routes/order.routes.js"
@@ -21,58 +22,40 @@ import "./services/email.service.js";
 const app = express();
 const __dirname = path.resolve();
 
-// --- En tu server.js ---
-
+// --- 1. CONFIGURACIÓN DE CORS ---
 const corsOptions = {
-  
   origin: function (origin, callback) {
-    // Si no hay origen (Postman/Mobile) o es uno de los permitidos
-    if (!origin) return callback(null, true);
-
-    const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
-    const isNgrok = origin.includes('ngrok-free.dev') || origin.includes('ngrok-free.app') || origin.includes('ngrok.io');
-    const isExpo = origin.startsWith('exp://') || origin.includes('expo.io');
-
-    if (isLocal || isNgrok || isExpo) {
+    // Permitimos localhost y tus túneles de ngrok
+    if (!origin || origin.includes('localhost') || origin.includes('ngrok-free.dev') || origin.includes('ngrok-free.app')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // Esto es vital
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'clerk-session-id', 
-    'ngrok-skip-browser-warning',
-    'x-clerk-auth-token',
-    'x-requested-with'
-  ],
+  credentials: true,
   optionsSuccessStatus: 200 
 };
 
-// 1. Aplica el middleware de CORS normal
 app.use(cors(corsOptions));
 
-// 2. NUEVO: Middleware forzado para asegurar Credentials y Headers de Ngrok
-// Pon esto JUSTO DEBAJO de app.use(cors(corsOptions))
+// Refuerzo manual de headers (Vital para Firefox y ngrok)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  // Si el origen está en nuestra lista blanca (podemos simplificar aquí para testeo)
-  res.header("Access-Control-Allow-Origin", origin);
-  res.header("Access-Control-Allow-Credentials", "true");
+  if (origin && (origin.includes('localhost') || origin.includes('ngrok-free.dev'))) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+  }
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, clerk-session-id, ngrok-skip-browser-warning, x-clerk-auth-token, x-requested-with");
-  
-  // Manejo manual de pre-flight (OPTIONS) para evitar el error de PathError anterior
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
 });
 
-
+// --- 2. MIDDLEWARES DE PARSEO ---
+// Stripe Webhook requiere el body "raw"
 app.use(
   "/api/payment",
   (req, res, next) => {
@@ -87,32 +70,51 @@ app.use(
 
 app.use(express.json());
 
+// --- 3. WEBHOOK DE CLERK (REGISTRO DIRECTO A MONGODB) ---
+// 🚀 Aquí eliminamos Inngest y guardamos directo en la DB
 app.post("/api/webhooks/clerk", async (req, res) => {
-  const event = req.body;
-  console.log("Webhook received:", event.type);
+  const { data, type } = req.body;
+  
+  console.log(`✉️ Webhook de Clerk recibido: ${type}`);
+
   try {
-    await inngest.send({
-      name: `clerk.${event.type}`,
-      data: event.data,
-    });
-    res.status(200).json({ received: true });
+    if (type === "user.created" || type === "user.updated") {
+      const { id, first_name, last_name, email_addresses, image_url } = data;
+      const email = email_addresses[0]?.email_address;
+
+      const userData = {
+        clerkId: id,
+        email: email,
+        name: `${first_name || ""} ${last_name || ""}`.trim(),
+        image: image_url,
+      };
+
+      // Si el usuario existe lo actualiza, si no, lo crea (Adiós usuarios fantasmas)
+      await User.findOneAndUpdate(
+        { clerkId: id },
+        userData,
+        { upsert: true, new: true }
+      );
+
+      console.log(`✅ Usuario ${id} sincronizado en MongoDB.`);
+    }
+
+    if (type === "user.deleted") {
+      const { id } = data;
+      await User.findOneAndDelete({ clerkId: id });
+      console.log(`🗑️ Usuario ${id} eliminado.`);
+    }
+
+    res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error sending event to Inngest:", error);
-    res.status(500).json({ error: "Inngest error" });
+    console.error("❌ Error en Webhook de Clerk:", error);
+    res.status(500).json({ error: "Error interno" });
   }
 });
 
-app.use("/api/inngest", serve({client:inngest, functions}));
 app.use(clerkMiddleware());
 
-app.get("/", (req, res) => {
-  res.json({ 
-    message: "API funcionando correctamente",
-    status: "ok",
-    endpoints: ["/api/health", "/api/products", "/api/cart"]
-  });
-});
-
+// --- 4. RUTAS DE LA API ---
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);
@@ -121,28 +123,34 @@ app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reviews", reviewRoutes);
 
-
 app.get("/api/health", (req, res) => {
-    res.status(200).json({ message: "Success" });
+    res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
 });
 
-if (ENV.NODE_ENV === "production") {
-    app.use(express.static(path.join(__dirname, "../admin/dist")));
-    app.get("*", (req, res) => {
-        res.sendFile(path.join(__dirname, "../admin", "dist", "index.html"));
-    });
-}
+// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS ---
+const frontendPath = path.join(__dirname, "../web/dist"); 
+app.use(express.static(frontendPath));
 
-const startServer = async () => {
-    await connectDB();
-    const HOST = '0.0.0.0';
-    const PORT = ENV.PORT || 3000;
-    app.listen(PORT, HOST, () => {
-      console.log('🚀 Server is up and running!');
-      console.log(`💻 Local:        http://localhost:${PORT}`);
-      console.log(`📱 Network:      http://192.168.40.137:${PORT}`);
-      console.log(`🌍 Environment:  ${ENV.NODE_ENV || 'development'}`);
+app.get(/^(?!\/api).+/, (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"), (err) => {
+        if (err) {
+            res.status(404).send("Error: index.html no encontrado. Ejecuta 'npm run build'.");
+        }
     });
+});
+
+// --- 6. ARRANQUE ---
+const startServer = async () => {
+    try {
+        await connectDB();
+        const PORT = ENV.PORT || 3000;
+        app.listen(PORT, '0.0.0.0', () => {
+          console.log('🚀 Backend de Don Palito Junior Protegido y Directo!');
+          console.log(`📂 Sirviendo Front desde: ${frontendPath}`);
+        });
+    } catch (error) {
+        console.error("Fallo crítico:", error);
+    }
 };
 
 startServer();

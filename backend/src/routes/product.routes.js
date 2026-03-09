@@ -7,7 +7,7 @@ const router = Router();
 
 //router.use(protectRoute);
 
-router.get("/",protectRoute, getAllProducts);
-router.get("/:id",protectRoute, getProductById);
+router.get("/", getAllProducts);
+router.get("/:id", getProductById);
 
 export default router;

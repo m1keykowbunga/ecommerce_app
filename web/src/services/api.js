@@ -4,8 +4,8 @@ import { toast } from 'react-toastify';
 console.log("🔍 Mi URL de API es:", import.meta.env.VITE_API_URL);
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://yaretzi-asbestous-jerrell.ngrok-free.dev/api",
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 15000,
   withCredentials: true, 
   headers: {
     'Content-Type': 'application/json',

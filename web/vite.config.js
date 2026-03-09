@@ -1,10 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  //  Define la base como './' para que los archivos 
+  // se encuentren correctamente independientemente de la subcarpeta.
+  base: '/', 
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -21,7 +29,6 @@ export default defineConfig({
     port: 5173,
     host: true,
     strictPort: true,
-    // Eliminamos 'open: true' para que no abra mil pestañas al usar ngrok
     allowedHosts: [
       '.ngrok-free.app', 
       '.ngrok-free.dev', 
@@ -32,14 +39,10 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
-        // 🛡️ CORRECCIÓN: Si tu backend en Node ya espera las rutas con "/api" 
-        // (ej: app.use('/api', routes)), NO debes usar rewrite.
-        // Si tu backend NO usa el prefijo /api, deja el rewrite.
-        // Lo normal es quitarlo para que coincida con tu .env
-        // rewrite: (path) => path.replace(/^\/api/, ''), 
+        // Como tu backend usa app.use('/api', ...), NO necesitamos rewrite.
       },
     },
-    // 🚀 CORRECCIÓN HMR: Esto arregla el error "failed to connect to websocket"
+    // Esto arregla el error de WebSocket en ngrok mientras desarrollas
     hmr: {
       protocol: 'wss',
       host: 'yaretzi-asbestous-jerrell.ngrok-free.dev',
@@ -48,12 +51,18 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    //  Generar sourcemap: false ayuda a proteger tu código de curiosos
     sourcemap: false,
+    //  Limpieza automática de la carpeta dist antes de cada build
+    emptyOutDir: true,
     rollupOptions: {
       output: {
+        // Esto evita que los nombres de archivos sean predecibles por seguridad
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`,
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-forms': ['react-hook-form', 'yup', '@hookform/resolvers'],
           'vendor-ui': ['react-icons', 'react-toastify'],
           'vendor-utils': ['axios', 'moment'],
           'vendor-query': ['@tanstack/react-query'],
