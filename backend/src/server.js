@@ -108,27 +108,20 @@ app.get("/api/health", (req, res) => {
 });
 
 // --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS ---
-const isProd = process.env.NODE_ENV === 'production';
-
-// En Render, al ejecutar desde la raíz, quitamos los ".." para que encuentre las carpetas dist
 const webPath = path.join(__dirname, "web/dist");
 const adminPath = path.join(__dirname, "admin/dist");
 
 app.use(express.static(webPath));
 app.use("/admin", express.static(adminPath));
 
-// 1. Manejador para el Admin SPA
-// Usamos :path* para evitar el error "Missing parameter name"
-app.get("/admin/:path*", (req, res) => {
+// 1. Manejador para el Admin
+// Usamos un regex que atrape todo lo que empiece por /admin
+app.get(/^\/admin(\/.*)?$/, (req, res) => {
     res.sendFile(path.join(adminPath, "index.html"));
 });
 
-// 2. Manejador para el Frontend SPA
-// Usamos una ruta capturadora que ignore /api y /admin
-app.get("/:path*", (req, res) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/admin')) {
-        return; // Deja que Express siga con las rutas de API o el static de Admin
-    }
+// 2. Manejador para el Frontend (Cualquier cosa que NO sea /api ni /admin)
+app.get(/^(?!\/(api|admin)).*$/, (req, res) => {
     res.sendFile(path.join(webPath, "index.html"));
 });
 
