@@ -46,7 +46,8 @@ const Cart = () => {
       const toastId = toast.loading("Preparando pasarela de pago...");
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
+        // Cambia esto en Cart.jsx:
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/create-checkout-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
