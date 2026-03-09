@@ -1,13 +1,8 @@
 {
   "name": "don-palito-root",
   "version": "1.0.0",
-  "workspaces": [
-    "backend",
-    "web",
-    "admin"
-  ],
   "scripts": {
-    "build": "npm install && npm run build -w web && npm run build -w admin",
+    "build": "npm install --prefix backend && npm install --prefix web && npm run build --prefix web && npm install --prefix admin && npm run build --prefix admin",
     "start": "node backend/src/server.js"
   }
 }
