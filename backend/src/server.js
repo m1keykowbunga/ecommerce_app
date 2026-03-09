@@ -63,25 +63,34 @@ app.use(express.json());
 app.post('/api/payment/create-checkout-session', async (req, res) => {
     try {
         const { items } = req.body;
+        
+        // FORMA INFALIBLE: Usamos la URL de Render directamente si existe, 
+        // de lo contrario, la construimos con cuidado.
+        const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+
+        console.log("🔗 Generando sesión de Stripe con Base URL:", baseUrl);
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: items.map(item => ({
                 price_data: {
-                    currency: 'cop',
+                    currency: 'cop', 
                     product_data: {
-                        name: item.name || item.nombre,
+                        name: item.name || item.nombre || "Producto Don Palito",
                     },
-                    unit_amount: Math.round((item.price || item.precio) * 100),
+                    unit_amount: Math.round((item.price || item.precio || 0) * 100),
                 },
-                quantity: item.quantity || item.cantidad,
+                quantity: item.quantity || item.cantidad || 1,
             })),
             mode: 'payment',
-            success_url: `${process.env.FRONTEND_URL}/success`,
-            cancel_url: `${process.env.FRONTEND_URL}/carrito`,
+            // Aseguramos que la URL sea absoluta y tenga https
+            success_url: `${baseUrl}/success`,
+            cancel_url: `${baseUrl}/carrito`,
         });
+
         res.json({ id: session.id });
     } catch (error) {
-        console.error("❌ Error en Stripe:", error);
+        console.error("❌ Error en Stripe:", error.message); // Imprimimos solo el mensaje para no saturar
         res.status(500).json({ error: "No se pudo crear la sesión de pago" });
     }
 });
