@@ -2,7 +2,7 @@
   "name": "don-palito-root",
   "version": "1.0.0",
   "scripts": {
-    "build": "npm install --prefix backend && npm install --prefix web && npx --prefix web vite build && npm install --prefix admin && npx --prefix admin vite build",
+    "build": "npm install --prefix backend && npm install --prefix web && npx vite build web --config web/vite.config.js && npm install --prefix admin && npx vite build admin --config admin/vite.config.js",
     "start": "node backend/src/server.js"
   }
 }
