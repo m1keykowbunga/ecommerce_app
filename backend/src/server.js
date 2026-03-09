@@ -58,21 +58,16 @@ app.use(
 // Middleware general para el resto de rutas
 app.use(express.json());
 
-// --- 3. ENDPOINT DE STRIPE CHECKOUT // Endpoint unificado bajo /api/payment
+// --- 3. ENDPOINT DE STRIPE CHECKOUT (UNIFICADO) ---
+// Mantenemos esta ruta para que coincida con tu Cart.jsx
 app.post('/api/payment/create-checkout-session', async (req, res) => {
     try {
         const { items } = req.body;
-        
-        // Detectamos la URL base automáticamente (funciona en local y en Render)
-        const protocol = req.protocol;
-        const host = req.get('host');
-        const baseUrl = `${protocol}://${host}`;
-
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: items.map(item => ({
                 price_data: {
-                    currency: 'cop', 
+                    currency: 'cop',
                     product_data: {
                         name: item.name || item.nombre,
                     },
@@ -81,11 +76,9 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
                 quantity: item.quantity || item.cantidad,
             })),
             mode: 'payment',
-            // Redirigimos dinámicamente según dónde esté corriendo el servidor
-            success_url: `${baseUrl}/success`,
-            cancel_url: `${baseUrl}/carrito`,
+            success_url: `${process.env.FRONTEND_URL}/success`,
+            cancel_url: `${process.env.FRONTEND_URL}/carrito`,
         });
-
         res.json({ id: session.id });
     } catch (error) {
         console.error("❌ Error en Stripe:", error);
