@@ -107,27 +107,21 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
 });
 
-// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS (Híbrido) ---
+// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS ---
 const isProd = process.env.NODE_ENV === 'production';
 
-// En Render usamos ruta corta (cp -r), en Local usamos ruta larga
-const webPath = isProd 
-  ? path.join(__dirname, "web/dist") 
-  : path.join(__dirname, "../web/dist");
-
-const adminPath = isProd 
-  ? path.join(__dirname, "admin/dist") 
-  : path.join(__dirname, "../admin/dist");
+// Como el servidor corre desde 'backend', bajamos un nivel para entrar a 'web' o 'admin'
+const webPath = path.join(__dirname, "../web/dist");
+const adminPath = path.join(__dirname, "../admin/dist");
 
 app.use(express.static(webPath));
 app.use("/admin", express.static(adminPath));
 
-// Manejador SPA Admin
+// Manejadores SPA (Mantenlos igual)
 app.get("/admin/*", (req, res) => {
     res.sendFile(path.join(adminPath, "index.html"));
 });
 
-// Manejador SPA Web (Evita colisiones con API y Admin)
 app.get(/^(?!\/api|\/admin).+/, (req, res) => {
     res.sendFile(path.join(webPath, "index.html"));
 });
