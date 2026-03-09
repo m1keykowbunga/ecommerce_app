@@ -127,15 +127,27 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
 });
 
-// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS ---
-const frontendPath = path.join(__dirname, "../web/dist"); 
-app.use(express.static(frontendPath));
+// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS (WEB Y ADMIN) ---
 
-app.get(/^(?!\/api).+/, (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"), (err) => {
-        if (err) {
-            res.status(404).send("Error: index.html no encontrado. Ejecuta 'npm run build'.");
-        }
+// Ruta para la Web de Clientes
+const webPath = path.join(__dirname, "../../web/dist"); 
+app.use(express.static(webPath));
+
+// Ruta para el Panel de Admin (Accesible en /admin)
+const adminPath = path.join(__dirname, "../../admin/dist");
+app.use("/admin", express.static(adminPath));
+
+// MANEJADOR PARA EL ADMIN (Rutas internas de React Admin)
+app.get("/admin/*", (req, res) => {
+    res.sendFile(path.join(adminPath, "index.html"), (err) => {
+        if (err) res.status(404).send("Admin dist no encontrado. Corre 'npm run build' en admin.");
+    });
+});
+
+// MANEJADOR UNIVERSAL PARA LA WEB (Clientes)
+app.get(/^(?!\/api|\/admin).+/, (req, res) => {
+    res.sendFile(path.join(webPath, "index.html"), (err) => {
+        if (err) res.status(404).send("Web dist no encontrado. Corre 'npm run build' en web.");
     });
 });
 

@@ -5,6 +5,7 @@ import path from 'path' // Re-habilita esto para los alias
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: '/admin/',
   resolve: {
     alias: {
       // Es vital mantener los alias sincronizados con tu estructura de software engineering
