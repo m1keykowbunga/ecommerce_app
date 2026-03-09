@@ -73,7 +73,7 @@ const Cart = () => {
         }
 
         // Cargamos Stripe con la llave pública de tus variables de entorno
-        const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+        const stripe = await loadStripe('pk_test_51SzfbgPI1QhEm9sgzziBH4dtfYRTxrA8huTNXky8sbeb7W8qiW7pJ0vW1NJJY14796zh7phQmDUbY7UqMds0lUS700xqi10vf7');
         
         toast.update(toastId, { 
           render: "Redirigiendo a Stripe...", 
