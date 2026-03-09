@@ -4,29 +4,28 @@ import { clerkMiddleware } from '@clerk/express';
 import cors from "cors";
 
 import { User } from "./models/user.model.js"; 
-
 import { ENV } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 
 // Rutas
 import adminRoutes from "./routes/admin.routes.js";
 import userRoutes from "./routes/user.routes.js";
-import orderRoutes from "./routes/order.routes.js"
+import orderRoutes from "./routes/order.routes.js";
 import reviewRoutes from "./routes/review.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
-import paymentRoutes from "./routes/payment.routes.js"
+import paymentRoutes from "./routes/payment.routes.js";
 import couponRoutes from "./routes/coupon.routes.js";
 import "./services/email.service.js";
 
 const app = express();
 const __dirname = path.resolve();
 
-// --- 1. CONFIGURACIÓN DE CORS ---
+// --- 1. CONFIGURACIÓN DE CORS (Híbrido Local/Render) ---
 const corsOptions = {
   origin: function (origin, callback) {
-    // Permitimos localhost y tus túneles de ngrok
-    if (!origin || origin.includes('localhost') || origin.includes('ngrok-free.dev') || origin.includes('ngrok-free.app')) {
+    // Permitimos localhost, ngrok y cualquier subdominio de onrender.com
+    if (!origin || origin.includes('localhost') || origin.includes('ngrok') || origin.includes('onrender.com')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -38,10 +37,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Refuerzo manual de headers (Vital para Firefox y ngrok)
+// Refuerzo de headers (Necesario para navegadores y proxies)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && (origin.includes('localhost') || origin.includes('ngrok-free.dev'))) {
+  if (origin && (origin.includes('localhost') || origin.includes('ngrok') || origin.includes('onrender.com'))) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
   }
@@ -55,7 +54,6 @@ app.use((req, res, next) => {
 });
 
 // --- 2. MIDDLEWARES DE PARSEO ---
-// Stripe Webhook requiere el body "raw"
 app.use(
   "/api/payment",
   (req, res, next) => {
@@ -70,44 +68,26 @@ app.use(
 
 app.use(express.json());
 
-// --- 3. WEBHOOK DE CLERK (REGISTRO DIRECTO A MONGODB) ---
-// 🚀 Aquí eliminamos Inngest y guardamos directo en la DB
+// --- 3. WEBHOOK DE CLERK ---
 app.post("/api/webhooks/clerk", async (req, res) => {
   const { data, type } = req.body;
-  
-  console.log(`✉️ Webhook de Clerk recibido: ${type}`);
-
   try {
     if (type === "user.created" || type === "user.updated") {
       const { id, first_name, last_name, email_addresses, image_url } = data;
       const email = email_addresses[0]?.email_address;
-
       const userData = {
         clerkId: id,
         email: email,
         name: `${first_name || ""} ${last_name || ""}`.trim(),
         image: image_url,
       };
-
-      // Si el usuario existe lo actualiza, si no, lo crea (Adiós usuarios fantasmas)
-      await User.findOneAndUpdate(
-        { clerkId: id },
-        userData,
-        { upsert: true, new: true }
-      );
-
-      console.log(`✅ Usuario ${id} sincronizado en MongoDB.`);
+      await User.findOneAndUpdate({ clerkId: id }, userData, { upsert: true, new: true });
     }
-
     if (type === "user.deleted") {
-      const { id } = data;
-      await User.findOneAndDelete({ clerkId: id });
-      console.log(`🗑️ Usuario ${id} eliminado.`);
+      await User.findOneAndDelete({ clerkId: data.id });
     }
-
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error("❌ Error en Webhook de Clerk:", error);
     res.status(500).json({ error: "Error interno" });
   }
 });
@@ -127,28 +107,29 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
 });
 
-// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS (WEB Y ADMIN) ---
+// --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS (Híbrido) ---
+const isProd = process.env.NODE_ENV === 'production';
 
-// Ruta para la Web de Clientes
-const webPath = path.join(__dirname, "../../web/dist"); 
+// En Render usamos ruta corta (cp -r), en Local usamos ruta larga
+const webPath = isProd 
+  ? path.join(__dirname, "web/dist") 
+  : path.join(__dirname, "../web/dist");
+
+const adminPath = isProd 
+  ? path.join(__dirname, "admin/dist") 
+  : path.join(__dirname, "../admin/dist");
+
 app.use(express.static(webPath));
-
-// Ruta para el Panel de Admin (Accesible en /admin)
-const adminPath = path.join(__dirname, "../../admin/dist");
 app.use("/admin", express.static(adminPath));
 
-// MANEJADOR PARA EL ADMIN (Rutas internas de React Admin)
+// Manejador SPA Admin
 app.get("/admin/*", (req, res) => {
-    res.sendFile(path.join(adminPath, "index.html"), (err) => {
-        if (err) res.status(404).send("Admin dist no encontrado. Corre 'npm run build' en admin.");
-    });
+    res.sendFile(path.join(adminPath, "index.html"));
 });
 
-// MANEJADOR UNIVERSAL PARA LA WEB (Clientes)
+// Manejador SPA Web (Evita colisiones con API y Admin)
 app.get(/^(?!\/api|\/admin).+/, (req, res) => {
-    res.sendFile(path.join(webPath, "index.html"), (err) => {
-        if (err) res.status(404).send("Web dist no encontrado. Corre 'npm run build' en web.");
-    });
+    res.sendFile(path.join(webPath, "index.html"));
 });
 
 // --- 6. ARRANQUE ---
@@ -157,8 +138,9 @@ const startServer = async () => {
         await connectDB();
         const PORT = ENV.PORT || 3000;
         app.listen(PORT, '0.0.0.0', () => {
-          console.log('🚀 Backend de Don Palito Junior Protegido y Directo!');
-          console.log(`📂 Sirviendo Front desde: ${frontendPath}`);
+          console.log(`🚀 Servidor en puerto ${PORT}`);
+          console.log(`📂 Web Path: ${webPath}`);
+          console.log(`📂 Admin Path: ${adminPath}`);
         });
     } catch (error) {
         console.error("Fallo crítico:", error);
