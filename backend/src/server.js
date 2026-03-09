@@ -107,6 +107,43 @@ app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
 });
 
+// --- CONFIGURACIÓN DE STRIPE ---
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Endpoint para crear la sesión de pago
+app.post('/api/create-checkout-session', async (req, res) => {
+    try {
+        const { items } = req.body; // Recibimos el carrito del front
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: items.map(item => ({
+                price_data: {
+                    currency: 'cop', // Pesos colombianos
+                    product_data: {
+                        name: item.name || item.nombre,
+                        // Si tienes imágenes en Cloudinary, pásalas aquí:
+                        // images: [item.image || item.imagen],
+                    },
+                    unit_amount: Math.round((item.price || item.precio) * 100),
+                },
+                quantity: item.quantity || item.cantidad,
+            })),
+            mode: 'payment',
+            // Usamos las variables de entorno de Render
+            success_url: `${process.env.FRONTEND_URL}/success`,
+            cancel_url: `${process.env.FRONTEND_URL}/cart`,
+        });
+
+        res.json({ id: session.id });
+    } catch (error) {
+        console.error("❌ Error en Stripe:", error);
+        res.status(500).json({ error: "No se pudo crear la sesión de pago" });
+    }
+});
+
+
 // --- 5. SERVICIO DE ARCHIVOS ESTÁTICOS ---
 const webPath = path.join(__dirname, "web/dist");
 const adminPath = path.join(__dirname, "admin/dist");
