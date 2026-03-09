@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoArrowBack, IoLockClosed, IoLogoWhatsapp } from 'react-icons/io5';
 import { toast } from 'react-toastify';
+import { loadStripe } from '@stripe/stripe-js';
 
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,29 +26,81 @@ const Cart = () => {
   const [includeShipping, setIncludeShipping] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Cálculo de totales
+  // Cálculo de totales para la UI y WhatsApp
   const iva = Math.round(subtotal * IVA_RATE);
   const baseWithoutIva = subtotal - iva;
   const shipping = includeShipping ? SHIPPING_COST : 0;
   const total = subtotal + shipping;
 
   /**
-   * method: 'tarjeta' | 'otros' | null
-   * - 'tarjeta' → checkout preseleccionado con Stripe
-   * - 'otros'   → checkout en step de selección de método (transferencia)
-   * - null      → usuario no autenticado → modal de login
+   * Manejador principal del Checkout
    */
-  const handleCheckout = (method) => {
+  const handleCheckout = async (method) => {
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
     }
+
+    // --- ESCENARIO 1: PAGO CON TARJETA (STRIPE) ---
     if (method === 'tarjeta') {
-      navigate('/checkout', { state: { paymentMethod: 'tarjeta' } });
-    } else {
-      // 'otros': abre checkout normal sin preselección
-      navigate('/checkout');
+      const toastId = toast.loading("Preparando pasarela de pago...");
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            items: items.map(item => {
+              // Calculamos el precio real aplicando el descuento si existe
+              const unitPrice = item.product.discount
+                ? item.product.price * (1 - item.product.discount / 100)
+                : item.product.price;
+
+              return {
+                name: item.product.name,
+                price: Math.round(unitPrice), // Stripe necesita enteros, redondeamos aquí
+                quantity: item.quantity
+              };
+            })
+          }),
+        });
+
+        const session = await response.json();
+
+        if (!response.ok || session.error) {
+          throw new Error(session.error || "Error al conectar con el servidor");
+        }
+
+        // Cargamos Stripe con la llave pública de tus variables de entorno
+        const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+        
+        toast.update(toastId, { 
+          render: "Redirigiendo a Stripe...", 
+          type: "success", 
+          isLoading: false, 
+          autoClose: 2000 
+        });
+
+        // Redirección a la pasarela externa
+        const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
+        
+        if (error) throw error;
+
+      } catch (error) {
+        console.error("❌ Error en Checkout Stripe:", error);
+        toast.update(toastId, { 
+          render: `Error: ${error.message}`, 
+          type: "error", 
+          isLoading: false, 
+          autoClose: 4000 
+        });
+      }
+      return;
     }
+
+    // --- ESCENARIO 2: OTROS MÉTODOS (TRANSFERENCIA / MANUAL) ---
+    // Simplemente navegamos a tu página de checkout existente
+    navigate('/checkout');
   };
 
   const buildWhatsAppMessage = () => {
@@ -75,7 +128,6 @@ const Cart = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Breadcrumb */}
       <Link
         to="/catalogo"
         className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-primary mb-6 transition-colors"
@@ -92,7 +144,6 @@ const Cart = () => {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        {/* Columna izquierda */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             {items.map((item) => (
@@ -100,7 +151,6 @@ const Cart = () => {
             ))}
           </div>
 
-          {/* WhatsApp alternativo */}
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4 flex items-start gap-3">
             <IoLogoWhatsapp size={22} className="text-green-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -117,7 +167,6 @@ const Cart = () => {
           </div>
         </div>
 
-        {/* Columna derecha - Resumen */}
         <div className="lg:col-span-1">
           <OrderSummary
             baseWithoutIva={baseWithoutIva}
@@ -134,7 +183,6 @@ const Cart = () => {
         </div>
       </div>
 
-      {/* Modal: sesión requerida */}
       <Modal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
