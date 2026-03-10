@@ -40,55 +40,39 @@ export const protectRoute = [
 export const adminOnly = async (req, res, next) => {
     try {
         if (!req.user || !req.clerkAuth) {
-            console.error("adminOnly: protectRoute no se ejecutó primero");
-            return res.status(401).json({ 
-                message: "Unauthorized - authentication required" 
-            });
+            return res.status(401).json({ message: "Unauthorized" });
         }
 
+        // 1. Intentar obtener el rol de Clerk (JWT)
         const userRole = req.clerkAuth.sessionClaims?.role;
+        
+        // 2. IMPORTANTE: También mirar el rol en nuestro modelo de MongoDB
+        const dbRole = req.user.role; 
+
         const userEmail = req.user.email;
 
-        if (ENV.NODE_ENV === 'development') {
-            console.log(`Admin check:`, {
-                email: userEmail,
-                role: userRole || 'sin role',
-                clerkId: req.user.clerkId
-            });
-        }
+        // 3. Validar por Email (Quitamos la restricción de 'development' para que funcione en Render)
+        const isAdminByEmail = ENV.ADMIN_EMAIL && 
+                               ENV.ADMIN_EMAIL.split(',')
+                                   .map(e => e.trim().toLowerCase())
+                                   .includes(userEmail.toLowerCase());
 
-        const isAdmin = userRole === 'admin';
-        
-        const isAdminByEmail = ENV.NODE_ENV === 'development' &&
-                                ENV.ADMIN_EMAIL && 
-                                ENV.ADMIN_EMAIL.split(',')
-                                    .map(e => e.trim())
-                                    .includes(userEmail);
+        // 4. Si es admin por cualquiera de las 3 vías, lo dejamos pasar
+        const authorized = (userRole === 'admin') || (dbRole === 'admin') || isAdminByEmail;
 
-        if (!isAdmin && !isAdminByEmail) {
-            if (ENV.NODE_ENV === 'development') {
-                console.log(`Acceso denegado:`, {
-                    email: userEmail,
-                    role: userRole || 'sin rol'
-                });
-            }        
+        if (!authorized) {
+            console.log(`🚫 Acceso denegado a ${userEmail}. Roles detectados -> Clerk: ${userRole}, DB: ${dbRole}`);
             return res.status(403).json({ 
                 message: "Forbidden - admin access only",
-                details: ENV.NODE_ENV === 'development' 
-                    ? `Rol actual: ${userRole || 'ninguno'}` 
-                    : undefined
+                debug: { clerkRole: userRole, mongoRole: dbRole } // Solo para debug
             });
         }
 
-        if (ENV.NODE_ENV === 'development') {
-            console.log(`Admin autorizado: ${userEmail} (${isAdmin ? 'por rol' : 'por email'})`);
-        }
+        console.log(`✅ Admin autorizado: ${userEmail}`);
         next();
     } catch (error) {
         console.error("Error in adminOnly middleware:", error);
-        return res.status(500).json({ 
-            message: "Internal server error" 
-        });
+        return res.status(500).json({ message: "Internal server error" });
     }
 };
 
