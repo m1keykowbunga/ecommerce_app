@@ -84,7 +84,7 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
             })),
             mode: 'payment',
             // Aseguramos que la URL sea absoluta y tenga https
-            success_url: `${baseUrl}/success`,
+            success_url: `${baseUrl}/checkout/exito`, 
             cancel_url: `${baseUrl}/carrito`,
         });
 
