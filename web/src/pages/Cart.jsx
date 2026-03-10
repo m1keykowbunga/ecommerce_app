@@ -31,28 +31,68 @@ const Cart = () => {
   const total = subtotal + shipping;
 
   const handleCheckout = async (method) => {
-  if (method === 'tarjeta') {
-    const toastId = toast.loading("Redirigiendo a la pasarela segura...");
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/payment/create-checkout-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }) // Pasamos los items del carrito
-      });
-
-      const data = await response.json();
-      
-      if (data.url) {
-        // EL SALTO DEFINITIVO
-        window.location.href = data.url;
-      } else {
-        throw new Error("No se pudo obtener la URL de pago");
-      }
-    } catch (error) {
-      toast.update(toastId, { render: "Error al conectar con Stripe", type: "error", isLoading: false, autoClose: 3000 });
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
     }
-  }
-};
+
+    if (method === 'tarjeta') {
+      const toastId = toast.loading("Preparando pasarela de pago...");
+
+      try {
+        // 1. Petición al backend
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/payment/create-checkout-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            items: items.map(item => {
+              const unitPrice = item.product.discount
+                ? item.product.price * (1 - item.product.discount / 100)
+                : item.product.price;
+
+              return {
+                name: item.product.name,
+                price: Math.round(unitPrice),
+                quantity: item.quantity
+              };
+            })
+          }),
+        });
+
+        const session = await response.json();
+
+        if (!response.ok || session.error) {
+          throw new Error(session.error || "Error al conectar con el servidor");
+        }
+
+        // 2. REDIRECCIÓN DIRECTA (Nueva forma de Stripe 2025/2026)
+        if (session.url) {
+          toast.update(toastId, { 
+            render: "Redirigiendo a Stripe...", 
+            type: "success", 
+            isLoading: false, 
+            autoClose: 2000 
+          });
+          
+          window.location.href = session.url;
+        } else {
+          throw new Error("No se recibió la URL de pago del servidor");
+        }
+
+      } catch (error) {
+        console.error("❌ Error en Checkout Stripe:", error);
+        toast.update(toastId, { 
+          render: `Error: ${error.message}`, 
+          type: "error", 
+          isLoading: false, 
+          autoClose: 4000 
+        });
+      }
+      return;
+    }
+
+    navigate('/checkout');
+  };
 
   const buildWhatsAppMessage = () => {
     let msg = '¡Hola! Me gustaría hacer el siguiente pedido:\n\n';
