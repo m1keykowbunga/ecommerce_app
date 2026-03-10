@@ -88,7 +88,7 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
             cancel_url: `${baseUrl}/carrito`,
         });
 
-        res.json({ id: session.id });
+        res.json({ url: session.url });
     } catch (error) {
         console.error("❌ Error en Stripe:", error.message); // Imprimimos solo el mensaje para no saturar
         res.status(500).json({ error: "No se pudo crear la sesión de pago" });

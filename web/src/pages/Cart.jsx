@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoArrowBack, IoLockClosed, IoLogoWhatsapp } from 'react-icons/io5';
 import { toast } from 'react-toastify';
-import { loadStripe } from '@stripe/stripe-js';
 
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,40 +25,34 @@ const Cart = () => {
   const [includeShipping, setIncludeShipping] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Cálculo de totales para la UI y WhatsApp
   const iva = Math.round(subtotal * IVA_RATE);
   const baseWithoutIva = subtotal - iva;
   const shipping = includeShipping ? SHIPPING_COST : 0;
   const total = subtotal + shipping;
 
-  /**
-   * Manejador principal del Checkout
-   */
   const handleCheckout = async (method) => {
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
     }
 
-    // --- ESCENARIO 1: PAGO CON TARJETA (STRIPE) ---
     if (method === 'tarjeta') {
       const toastId = toast.loading("Preparando pasarela de pago...");
 
       try {
-        // Cambia esto en Cart.jsx:
+        // 1. Petición al backend
         const response = await fetch(`${import.meta.env.VITE_API_URL}/payment/create-checkout-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             items: items.map(item => {
-              // Calculamos el precio real aplicando el descuento si existe
               const unitPrice = item.product.discount
                 ? item.product.price * (1 - item.product.discount / 100)
                 : item.product.price;
 
               return {
                 name: item.product.name,
-                price: Math.round(unitPrice), // Stripe necesita enteros, redondeamos aquí
+                price: Math.round(unitPrice),
                 quantity: item.quantity
               };
             })
@@ -72,20 +65,19 @@ const Cart = () => {
           throw new Error(session.error || "Error al conectar con el servidor");
         }
 
-        // Cargamos Stripe con la llave pública de tus variables de entorno
-        const stripe = await loadStripe('pk_test_51SzfbgPI1QhEm9sgzziBH4dtfYRTxrA8huTNXky8sbeb7W8qiW7pJ0vW1NJJY14796zh7phQmDUbY7UqMds0lUS700xqi10vf7');
-        
-        toast.update(toastId, { 
-          render: "Redirigiendo a Stripe...", 
-          type: "success", 
-          isLoading: false, 
-          autoClose: 2000 
-        });
-
-        // Redirección a la pasarela externa
-        const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
-        
-        if (error) throw error;
+        // 2. REDIRECCIÓN DIRECTA (Nueva forma de Stripe 2025/2026)
+        if (session.url) {
+          toast.update(toastId, { 
+            render: "Redirigiendo a Stripe...", 
+            type: "success", 
+            isLoading: false, 
+            autoClose: 2000 
+          });
+          
+          window.location.href = session.url;
+        } else {
+          throw new Error("No se recibió la URL de pago del servidor");
+        }
 
       } catch (error) {
         console.error("❌ Error en Checkout Stripe:", error);
@@ -99,8 +91,6 @@ const Cart = () => {
       return;
     }
 
-    // --- ESCENARIO 2: OTROS MÉTODOS (TRANSFERENCIA / MANUAL) ---
-    // Simplemente navegamos a tu página de checkout existente
     navigate('/checkout');
   };
 
@@ -129,6 +119,7 @@ const Cart = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* ... resto del JSX igual ... */}
       <Link
         to="/catalogo"
         className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-primary mb-6 transition-colors"
@@ -184,29 +175,18 @@ const Cart = () => {
         </div>
       </div>
 
-      <Modal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        title="Inicia sesión para continuar"
-        size="sm"
-      >
+      <Modal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} title="Inicia sesión para continuar" size="sm">
         <div className="space-y-4">
           <div className="flex justify-center py-2">
             <IoLockClosed size={48} className="text-brand-primary opacity-60" />
           </div>
           <p className="text-gray-600 text-center text-sm">
             Para proceder al pago necesitas tener una cuenta.
-            Tus productos del carrito se guardarán.
           </p>
           <div className="flex flex-col gap-2 pt-2">
-            <Link to="/login" state={{ from: { pathname: '/checkout' } }}>
+            <Link to="/login" state={{ from: { pathname: '/carrito' } }}>
               <Button variant="primary" fullWidth onClick={() => setShowLoginModal(false)}>
                 Iniciar sesión
-              </Button>
-            </Link>
-            <Link to="/registro" state={{ from: { pathname: '/checkout' } }}>
-              <Button variant="ghost" fullWidth onClick={() => setShowLoginModal(false)}>
-                Crear cuenta gratis
               </Button>
             </Link>
           </div>
