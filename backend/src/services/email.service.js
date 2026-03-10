@@ -3,11 +3,16 @@ import { ENV } from "../config/env.js";
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com", // Usamos el host explícito en lugar de service: "gmail"
-    port: 465,              // Puerto para SSL
-    secure: true,           // Usar SSL,
+    port: 587,              // Puerto para SSL
+    secure: false,           // Usar SSL,
     auth: {
         user: ENV.ADMIN_EMAIL,
         pass: ENV.EMAIL_PASSWORD,
+    },
+    tls: {
+        // Obliga a usar IPv4 y evita errores de certificado en entornos restringidos
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2'
     },
     // Añadimos timeouts para que nodemailer no espere eternamente en Render
     connectionTimeout: 10000, 
