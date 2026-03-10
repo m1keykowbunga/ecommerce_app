@@ -4,7 +4,7 @@ import { clerkMiddleware } from '@clerk/express';
 import cors from "cors";
 import Stripe from 'stripe';
 
-import { User } from "./models/user.model.js"; 
+import { User } from "./models/user.model.js";
 import { ENV } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 
@@ -25,7 +25,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // --- 1. CONFIGURACIÓN DE CORS ---
 const allowedOrigins = [
-  'https://don-palito-jr.onrender.com', 
+  'https://don-palito-jr.onrender.com',
   'http://localhost:5173',
   'http://localhost:3000'
 ];
@@ -39,7 +39,7 @@ app.use(cors({
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200 
+  optionsSuccessStatus: 200
 }));
 
 // --- 2. MIDDLEWARE DE STRIPE WEBHOOK (DEBE IR ANTES DE EXPRESS.JSON) ---
@@ -61,46 +61,48 @@ app.use(express.json());
 // --- 3. ENDPOINT DE STRIPE CHECKOUT (UNIFICADO) ---
 // Mantenemos esta ruta para que coincida con tu Cart.jsx
 app.post('/api/payment/create-checkout-session', async (req, res) => {
-    try {
-        const { items } = req.body;
-        
-        // Obtenemos el ID del usuario (asumiendo que viene de tu middleware de auth)
-        // Si usas Clerk, asegúrate de que req.user esté disponible
-        const userId = req.user?._id?.toString() || "usuario_anonimo";
+  try {
+    const { items } = req.body;
 
-        const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    // Obtenemos el ID del usuario (asumiendo que viene de tu middleware de auth)
+    // Si usas Clerk, asegúrate de que req.user esté disponible
+    const userId = req.user?._id?.toString() || "usuario_anonimo";
 
-        console.log("🔗 Generando sesión de Stripe para el usuario:", userId);
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
 
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: items.map(item => ({
-                price_data: {
-                    currency: 'cop', 
-                    product_data: {
-                        name: item.name || item.nombre || "Producto Don Palito",
-                    },
-                    unit_amount: Math.round((item.price || item.precio || 0) * 100),
-                },
-                quantity: item.quantity || item.cantidad || 1,
-            })),
-            mode: 'payment',
-            // --- AQUÍ AGREGAMOS LA METADATA ---
-            metadata: {
-                userId: userId,
-                // Guardamos un resumen de los productos (opcional, útil para el webhook)
-                orderItems: JSON.stringify(items.map(i => ({ id: i.id || i._id, qty: i.quantity })))
-            },
-            // ---------------------------------
-            success_url: `${baseUrl}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`, 
-            cancel_url: `${baseUrl}/carrito`,
-        });
+    console.log("🔗 Generando sesión de Stripe para el usuario:", userId);
 
-        res.json({ url: session.url });
-    } catch (error) {
-        console.error("❌ Error en Stripe:", error.message);
-        res.status(500).json({ error: "No se pudo crear la sesión de pago" });
-    }
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: items.map(item => ({
+        price_data: {
+          currency: 'cop',
+          product_data: {
+            name: item.name || item.nombre || "Producto Don Palito",
+          },
+          unit_amount: Math.round((item.price || item.precio || 0) * 100),
+        },
+        quantity: item.quantity || item.cantidad || 1,
+      })),
+      metadata: {
+        userId: req.user?._id?.toString() || "ID_DE_PRUEBA",
+        cartItems: JSON.stringify(items.map(i => i.id || i._id))
+      },
+      // También es buena práctica ponerlo en payment_intent_data
+      payment_intent_data: {
+        metadata: {
+          userId: req.user?._id?.toString() || "ID_DE_PRUEBA"
+        }
+      },
+      success_url: `${baseUrl}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/carrito`,
+    });
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error("❌ Error en Stripe:", error.message);
+    res.status(500).json({ error: "No se pudo crear la sesión de pago" });
+  }
 });
 
 // --- 4. WEBHOOK DE CLERK ---
@@ -140,7 +142,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/reviews", reviewRoutes);
 
 app.get("/api/health", (req, res) => {
-    res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
+  res.status(200).json({ status: "ok", message: "API Don Palito Junior operativa" });
 });
 
 // --- 6. SERVICIO DE ARCHIVOS ESTÁTICOS ---
@@ -151,24 +153,24 @@ app.use(express.static(webPath));
 app.use("/admin", express.static(adminPath));
 
 app.get(/^\/admin(\/.*)?$/, (req, res) => {
-    res.sendFile(path.join(adminPath, "index.html"));
+  res.sendFile(path.join(adminPath, "index.html"));
 });
 
 app.get(/^(?!\/(api|admin)).*$/, (req, res) => {
-    res.sendFile(path.join(webPath, "index.html"));
+  res.sendFile(path.join(webPath, "index.html"));
 });
 
 // --- 7. ARRANQUE ---
 const startServer = async () => {
-    try {
-        await connectDB();
-        const PORT = ENV.PORT || 3000;
-        app.listen(PORT, '0.0.0.0', () => {
-          console.log(`🚀 Servidor en puerto ${PORT}`);
-        });
-    } catch (error) {
-        console.error("Fallo crítico:", error);
-    }
+  try {
+    await connectDB();
+    const PORT = ENV.PORT || 3000;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Servidor en puerto ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Fallo crítico:", error);
+  }
 };
 
 startServer();
