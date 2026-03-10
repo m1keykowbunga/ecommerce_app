@@ -144,21 +144,40 @@ const Checkout = () => {
   };
 
   // Pago con Stripe: crear PaymentIntent → el webhook crea la orden automáticamente
-  const handleInitStripe = async () => {
-    setProcessing(true);
-    try {
-      const data = await paymentService.createPaymentIntent(
-        buildCartItems(),
-        getSelectedAddress(),
-        couponData ? couponCode : undefined
-      );
-      setClientSecret(data.clientSecret);
-    } catch (err) {
-      toast.error(err?.response?.data?.error || 'Error al inicializar el pago con Stripe');
-    } finally {
-      setProcessing(false);
+  // Busca esta función en tu Checkout.jsx y ajústala así:
+const handleInitStripe = async () => {
+  setProcessing(true);
+  try {
+    // 1. Llamamos a la sesión de checkout (redirección)
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/payment/create-checkout-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        items: items.map(i => ({
+          name: i.product.name,
+          price: i.product.discount 
+            ? Math.round(i.product.price * (1 - i.product.discount / 100))
+            : i.product.price,
+          quantity: i.quantity
+        }))
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.url) {
+      // 2. Saltamos a Stripe. 
+      // OJO: Aquí no limpiamos el carrito todavía porque el pago no se ha hecho.
+      window.location.href = data.url;
+    } else {
+      throw new Error("No se pudo obtener la URL de pago");
     }
-  };
+  } catch (err) {
+    toast.error(err.message || 'Error al inicializar Stripe');
+  } finally {
+    setProcessing(false);
+  }
+};
 
   // Stripe exitoso: el webhook ya creó la orden — solo limpiar y navegar
   const handleStripeSuccess = (paymentIntent) => {
