@@ -33,6 +33,7 @@ const Checkout = () => {
   const [step, setStep] = useState(0);
   const [includeShipping, setIncludeShipping] = useState(false);
 
+
   // Cupón
   const [couponCode, setCouponCode] = useState('');
   const [couponData, setCouponData] = useState(null);
@@ -46,9 +47,9 @@ const Checkout = () => {
   const [showNewAddress, setShowNewAddress] = useState(false);
 
   // Pago
-  const [paymentMethod, setPaymentMethod] = useState(preselectedMethod);
+  const [paymentMethod, setPaymentMethod] = useState(location.state?.paymentMethod || '');
   const [processing, setProcessing] = useState(false);
-  const [clientSecret, setClientSecret] = useState(null);
+  /* const [clientSecret, setClientSecret] = useState(null); */
 
   // Cargar direcciones al montar
   useEffect(() => {
@@ -407,28 +408,10 @@ const handleInitStripe = async () => {
 
           <PaymentMethodSelector
             selected={paymentMethod}
-            onChange={(method) => {
-              setPaymentMethod(method);
-              setClientSecret(null);
-            }}
+            onChange={(method) => setPaymentMethod(method)}
           />
 
-          {/* Formulario Stripe — solo cuando hay clientSecret */}
-          {paymentMethod === 'tarjeta' && clientSecret && stripePromise && (
-            <div className="mt-6 p-4 border border-brand-primary/20 rounded-xl bg-brand-primary/5">
-              <p className="text-sm text-brand-secondary font-medium mb-4">
-                Ingresa los datos de tu tarjeta:
-              </p>
-              <Elements stripe={stripePromise} options={{ clientSecret, locale: 'es' }}>
-                <StripeCheckoutForm
-                  onSuccess={handleStripeSuccess}
-                  onError={(err) => toast.error(err.message || 'Error al procesar el pago')}
-                />
-              </Elements>
-            </div>
-          )}
-
-          {/* Total */}
+          {/* TOTAL */}
           <div className="border-t mt-6 pt-4">
             <div className="flex justify-between font-bold text-lg mb-4">
               <span>Total a pagar</span>
@@ -441,8 +424,17 @@ const handleInitStripe = async () => {
               Atrás
             </Button>
 
-            {/* Transferencia bancaria */}
-            {paymentMethod !== 'tarjeta' && (
+            {/* LÓGICA DE BOTONES UNIFICADA */}
+            {paymentMethod === 'tarjeta' ? (
+              <Button
+                variant="primary"
+                onClick={handleInitStripe}
+                loading={processing}
+                disabled={!canProceedStep3 || !stripePromise}
+              >
+                Pagar con Stripe
+              </Button>
+            ) : (
               <Button
                 variant="primary"
                 onClick={handleConfirm}
@@ -450,18 +442,6 @@ const handleInitStripe = async () => {
                 disabled={!canProceedStep3}
               >
                 Confirmar pedido
-              </Button>
-            )}
-
-            {/* Tarjeta Stripe: primer clic obtiene clientSecret */}
-            {paymentMethod === 'tarjeta' && !clientSecret && (
-              <Button
-                variant="primary"
-                onClick={handleInitStripe}
-                loading={processing}
-                disabled={!canProceedStep3 || !stripePromise}
-              >
-                Continuar con Stripe
               </Button>
             )}
           </div>
