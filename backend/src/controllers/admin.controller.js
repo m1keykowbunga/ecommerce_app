@@ -129,25 +129,19 @@ export async function updateOrderStatus (req, res) {
         }
 
         const previousStatus = order.status;
-
         order.status = status;
 
-        if (status === "paid" && !order.paidAt) {
-            order.paidAt = new Date();
-        }
+        // Actualización de fechas
+        if (status === "paid" && !order.paidAt) order.paidAt = new Date();
+        if (status === "delivered" && !order.deliveredAt) order.deliveredAt = new Date();
 
-        if (status === "delivered" && !order.deliveredAt) {
-            order.deliveredAt = new Date();
-        }
-
+        // Guardamos primero en DB para asegurar la integridad del dato
         await order.save();
 
         if (previousStatus !== status) {
             try {
                 const user = order.user;
-
                 if (user) {
-                    
                     const orderItems = order.orderItems.map((item) => ({
                         name:     item.name || item.product?.name || "Producto",
                         quantity: item.quantity,
@@ -166,21 +160,25 @@ export async function updateOrderStatus (req, res) {
                         emailNotifications: user.emailNotifications,    
                     };
 
+                    // Notificaciones de cambio de estado (excepto pagado)
                     if (status !== "paid") {
                         Promise.allSettled([
                             sendOrderUpdatedAdminEmail(emailData),
                             sendOrderUpdatedClientEmail(emailData),
                         ]).then((results) => {
-                            results.forEach((result, index) => {
-                                if (result.status === "fulfilled") {
-                                    console.log(`Email de estado enviado a ${index === 0 ? "Admin" : "Cliente"}`);
-                                } else {
-                                    console.error("Error enviando email de estado:", result.reason);
-                                }
-                            });
+                            if (Array.isArray(results)) {
+                                results.forEach((result, index) => {
+                                    if (result.status === "fulfilled") {
+                                        console.log(`✅ Email de estado enviado a ${index === 0 ? "Admin" : "Cliente"}`);
+                                    } else {
+                                        console.error("⚠️ Error enviando email de estado:", result.reason);
+                                    }
+                                });
+                            }
                         });
                     }
 
+                    // Proceso de Facturación (cuando es "paid")
                     if (status === "paid") {
                         (async () => {
                             try {
@@ -219,15 +217,20 @@ export async function updateOrderStatus (req, res) {
                                     emailNotifications: user.emailNotifications,
                                 });
 
-                                results.forEach((result, index) => {
-                                    if (result.status === "fulfilled") {
-                                        console.log(`Factura enviada a ${index === 0 ? "Cliente" : "Admin"} (${invoiceNumber})`);
-                                    } else {
-                                        console.error(`Error enviando factura a ${index === 0 ? "Cliente" : "Admin"}:`, result.reason);
-                                    }
-                                });
+                                // CORRECCIÓN CLAVE: Validación de Array antes del forEach
+                                if (results && Array.isArray(results)) {
+                                    results.forEach((result, index) => {
+                                        if (result.status === "fulfilled") {
+                                            console.log(`✅ Factura enviada a ${index === 0 ? "Cliente" : "Admin"} (${invoiceNumber})`);
+                                        } else {
+                                            console.error(`⚠️ Error enviando factura a ${index === 0 ? "Cliente" : "Admin"}:`, result.reason);
+                                        }
+                                    });
+                                } else {
+                                    console.warn("⚠️ sendInvoiceEmails no devolvió un array válido.");
+                                }
                             } catch (invoiceError) {
-                                console.error("Error generando/enviando factura:", invoiceError.message, invoiceError.stack);
+                                console.error("🔥 Error generando/enviando factura:", invoiceError.message);
                             }
                         })();
                     }
