@@ -55,18 +55,21 @@ app.use(
   paymentRoutes
 );
 
+// Clerk Middleware (Después de Webhooks para evitar conflictos de firmas)
+app.use(clerkMiddleware());
+
+
 // Middleware general para el resto de rutas
 app.use(express.json());
 
-// --- 3. ENDPOINT DE STRIPE CHECKOUT (UNIFICADO) ---
-// Mantenemos esta ruta para que coincida con tu Cart.jsx
+// --- 3. ENDPOINT DE STRIPE CHECKOUT (CORREGIDO) ---
 app.post('/api/payment/create-checkout-session', async (req, res) => {
   try {
     const { items } = req.body;
-
-    // Obtenemos el ID del usuario (asumiendo que viene de tu middleware de auth)
-    // Si usas Clerk, asegúrate de que req.user esté disponible
-    const userId = req.user?._id?.toString() || "usuario_anonimo";
+    
+    // Ahora que Clerk está arriba, req.auth o req.user deberían tener datos
+    // Si usas el ID de MongoDB guardado en el webhook de Clerk:
+    const userId = req.user?._id?.toString() || "id_desconocido";
 
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
 
@@ -82,16 +85,16 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
           },
           unit_amount: Math.round((item.price || item.precio || 0) * 100),
         },
-        quantity: item.quantity || item.cantidad || 1,
+        quantity: item.quantity || 1,
       })),
+      mode: 'payment', // <--- ¡Faltaba esto! Fundamental para evitar el error
       metadata: {
-        userId: req.user?._id?.toString() || "ID_DE_PRUEBA",
-        cartItems: JSON.stringify(items.map(i => i.id || i._id))
+        userId: userId,
+        cartItems: JSON.stringify(items.map(i => i.id || i._id || i.product?._id))
       },
-      // También es buena práctica ponerlo en payment_intent_data
       payment_intent_data: {
         metadata: {
-          userId: req.user?._id?.toString() || "ID_DE_PRUEBA"
+          userId: userId
         }
       },
       success_url: `${baseUrl}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
@@ -101,7 +104,7 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
     res.json({ url: session.url });
   } catch (error) {
     console.error("❌ Error en Stripe:", error.message);
-    res.status(500).json({ error: "No se pudo crear la sesión de pago" });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -129,8 +132,6 @@ app.post("/api/webhooks/clerk", async (req, res) => {
   }
 });
 
-// Clerk Middleware (Después de Webhooks para evitar conflictos de firmas)
-app.use(clerkMiddleware());
 
 // --- 5. RUTAS DE LA API ---
 app.use("/api/products", productRoutes);
