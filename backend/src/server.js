@@ -62,18 +62,25 @@ app.use(clerkMiddleware());
 // Middleware general para el resto de rutas
 app.use(express.json());
 
-// --- 3. ENDPOINT DE STRIPE CHECKOUT (CORREGIDO) ---
+// Busca tu ruta de Stripe en server.js y cámbiala a esto:
 app.post('/api/payment/create-checkout-session', async (req, res) => {
   try {
     const { items } = req.body;
     
-    // Ahora que Clerk está arriba, req.auth o req.user deberían tener datos
-    // Si usas el ID de MongoDB guardado en el webhook de Clerk:
-    const userId = req.user?._id?.toString() || "id_desconocido";
+    // 1. Obtenemos el ID de Clerk desde req.auth (inyectado por clerkMiddleware)
+    const clerkId = req.auth?.userId;
+    
+    // 2. Buscamos el usuario real en tu MongoDB
+    let mongoUser = null;
+    if (clerkId) {
+      mongoUser = await User.findOne({ clerkId: clerkId });
+    }
+
+    const userId = mongoUser?._id?.toString() || "usuario_sin_perfil";
 
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
 
-    console.log("🔗 Generando sesión de Stripe para el usuario:", userId);
+    console.log("🔗 Generando sesión para ClerkId:", clerkId, "-> MongoId:", userId);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -87,15 +94,13 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
         },
         quantity: item.quantity || 1,
       })),
-      mode: 'payment', // <--- ¡Faltaba esto! Fundamental para evitar el error
+      mode: 'payment',
       metadata: {
-        userId: userId,
-        cartItems: JSON.stringify(items.map(i => i.id || i._id || i.product?._id))
+        userId: userId, // AQUÍ YA IRÁ EL ID REAL (ej: 69a9f346...)
+        cartItems: JSON.stringify(items.map(i => i.id || i._id))
       },
       payment_intent_data: {
-        metadata: {
-          userId: userId
-        }
+        metadata: { userId: userId }
       },
       success_url: `${baseUrl}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/carrito`,
