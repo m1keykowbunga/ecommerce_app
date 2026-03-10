@@ -64,11 +64,13 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
     try {
         const { items } = req.body;
         
-        // FORMA INFALIBLE: Usamos la URL de Render directamente si existe, 
-        // de lo contrario, la construimos con cuidado.
+        // Obtenemos el ID del usuario (asumiendo que viene de tu middleware de auth)
+        // Si usas Clerk, asegúrate de que req.user esté disponible
+        const userId = req.user?._id?.toString() || "usuario_anonimo";
+
         const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
 
-        console.log("🔗 Generando sesión de Stripe con Base URL:", baseUrl);
+        console.log("🔗 Generando sesión de Stripe para el usuario:", userId);
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -83,14 +85,20 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
                 quantity: item.quantity || item.cantidad || 1,
             })),
             mode: 'payment',
-            // Aseguramos que la URL sea absoluta y tenga https
-            success_url: `${baseUrl}/checkout/exito`, 
+            // --- AQUÍ AGREGAMOS LA METADATA ---
+            metadata: {
+                userId: userId,
+                // Guardamos un resumen de los productos (opcional, útil para el webhook)
+                orderItems: JSON.stringify(items.map(i => ({ id: i.id || i._id, qty: i.quantity })))
+            },
+            // ---------------------------------
+            success_url: `${baseUrl}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`, 
             cancel_url: `${baseUrl}/carrito`,
         });
 
         res.json({ url: session.url });
     } catch (error) {
-        console.error("❌ Error en Stripe:", error.message); // Imprimimos solo el mensaje para no saturar
+        console.error("❌ Error en Stripe:", error.message);
         res.status(500).json({ error: "No se pudo crear la sesión de pago" });
     }
 });
