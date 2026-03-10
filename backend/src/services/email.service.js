@@ -2,23 +2,22 @@ import nodemailer from "nodemailer";
 import { ENV } from "../config/env.js";
 
 const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com", // Usamos el host explícito en lugar de service: "gmail"
-    port: 587,              // Puerto para SSL
-    secure: false,           // Usar SSL,
+    // Forzamos la IP de SMTP de Google para evitar que el DNS devuelva IPv6
+    host: "74.125.141.108", 
+    port: 587,
+    secure: false, 
     auth: {
         user: ENV.ADMIN_EMAIL,
         pass: ENV.EMAIL_PASSWORD,
     },
     tls: {
-        // Obliga a usar IPv4 y evita errores de certificado en entornos restringidos
+        // Esto es vital para que acepte la conexión aunque usemos la IP directa
         rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
+        servername: 'smtp.gmail.com' 
     },
-    // Añadimos timeouts para que nodemailer no espere eternamente en Render
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    dnsV6: false, // Evita problemas de DNS en algunos entornos de Render
+    connectionTimeout: 20000, // Subimos a 20s por si la red de Render está lenta
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
 });
 
 transporter.verify((error) => {
