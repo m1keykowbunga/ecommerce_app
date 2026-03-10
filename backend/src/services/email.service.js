@@ -192,4 +192,45 @@ export const sendInvoiceEmails = async (data) => {
     return { success: true };
 };
 
-// ... Puedes aplicar 'fireAndForget' al resto de funciones (Marketing, Updates, etc) siguiendo el mismo patrón.
+// --- FUNCIONES FALTANTES PARA EL ADMIN CONTROLLER ---
+
+export const sendOrderUpdatedAdminEmail = async (orderData) => {
+    const orderId = (orderData.orderId || '').slice(-8).toUpperCase();
+    const statusLabels = { paid: 'Pagado', delivered: 'Entregado' };
+    
+    const html = buildEmailWithOrderRef(orderId, `
+        <h2 style="color:#222222;">Pedido Actualizado</h2>
+        <p><strong>Estado:</strong> ${statusLabels[orderData.status] || orderData.status}</p>
+        ${buildFullOrderDetail(orderData)}
+    `);
+
+    fireAndForget(sendEmail({ to: ENV.ADMIN_EMAIL, subject: `Pedido #${orderId} actualizado`, html }));
+};
+
+export const sendOrderUpdatedClientEmail = async (orderData) => {
+    if (!orderData.emailNotifications) return;
+    const orderId = orderData.orderId.slice(-8).toUpperCase();
+    
+    const statusConfig = {
+        paid: { title: '¡Pedido Confirmado!', message: 'Tu pago ha sido procesado exitosamente.' },
+        delivered: { title: '¡Pedido Entregado!', message: '¡Esperamos que disfrutes tu compra!' },
+    };
+
+    const config = statusConfig[orderData.status] || statusConfig.paid;
+    const html = buildEmailWithOrderRef(orderId, `
+        <h2 style="color:#222222;">${config.title}</h2>
+        <p>${config.message}</p>
+        ${buildFullOrderDetail(orderData)}
+    `);
+
+    fireAndForget(sendEmail({ to: orderData.userEmail, subject: `${config.title} #${orderId}`, html }));
+};
+
+export const sendMarketingSubscriptionEmail = async ({ userName, userEmail }) => {
+    const html = buildEmail(`<h2>¡Bienvenido al Boletín!</h2><p>Hola ${userName}, gracias por suscribirte.</p>`);
+    
+    fireAndForget(Promise.allSettled([
+        sendEmail({ to: userEmail, subject: 'Suscripción exitosa', html }),
+        sendEmail({ to: ENV.ADMIN_EMAIL, subject: 'Nuevo suscriptor', html: `<p>${userEmail} se ha suscrito.</p>` })
+    ]));
+};
