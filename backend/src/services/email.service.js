@@ -2,29 +2,30 @@ import nodemailer from "nodemailer";
 import { ENV } from "../config/env.js";
 
 const transporter = nodemailer.createTransport({
-    // Forzamos la IP de SMTP de Google para evitar que el DNS devuelva IPv6
-    host: "74.125.141.108", 
-    port: 587,
-    secure: false, 
+    // Volvemos al host por nombre, pero con una configuración de socket más robusta
+    service: 'gmail',
+    host: "smtp.gmail.com", 
+    port: 465, // Cambiamos a 465 (Secure) que a veces tiene mejor ruta en Render
+    secure: true, 
     auth: {
         user: ENV.ADMIN_EMAIL,
-        pass: ENV.EMAIL_PASSWORD,
+        pass: ENV.EMAIL_PASSWORD, // Asegúrate de que sea una "Contraseña de Aplicación"
     },
     tls: {
-        // Esto es vital para que acepte la conexión aunque usemos la IP directa
-        rejectUnauthorized: false,
-        servername: 'smtp.gmail.com' 
+        rejectUnauthorized: false
     },
-    connectionTimeout: 20000, // Subimos a 20s por si la red de Render está lenta
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
+    // Tiempos de espera agresivos para que Render no mate el proceso antes de tiempo
+    connectionTimeout: 30000, 
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
 });
 
+// Verificación silenciosa para no llenar los logs si falla, pero avisar si conecta
 transporter.verify((error) => {
     if (error) {
-        console.error("⚠️ Error conectando al servidor de email:", error.message);
+        console.warn("⚠️ Servidor de email en espera (posible bloqueo de red en Render)");
     } else {
-        console.log("✅ Servidor de email listo");
+        console.log("✅ Servidor de email listo y conectado");
     }
 });
 
@@ -131,29 +132,26 @@ export const sendEmail = async ({ to, subject, html, attachments = [] }) => {
             to,
             subject,
             html,
-            ...(attachments && attachments.length > 0 && { attachments }),
+            ...(attachments?.length > 0 && { attachments }),
         });
         console.log(`✅ Email enviado a ${to}: ${info.messageId}`);
         return { success: true };
     } catch (error) {
-        // Logueamos pero no lanzamos el error para no colgar el servidor
-        console.error(`⚠️ Error enviando email a ${to} (se ignoró para no bloquear):`, error.message);
+        // Log detallado para saber si es por IP, DNS o Credenciales
+        console.error(`❌ Fallo envío a ${to}:`, error.code || error.message);
         return { success: false, error: error.message };
     }
 };
 
-// Función interna para envolver envíos asíncronos
 const fireAndForget = (promise) => {
-    promise.catch(err => console.error("❌ Fallo en proceso de email en segundo plano:", err.message));
+    promise.catch(err => console.error("❌ Segundo plano email:", err.message));
 };
 
+// Implementación de las funciones de negocio
 export const sendWelcomeEmail = async ({ userName, userEmail }) => {
-    const subject = `¡Bienvenido/a a ${ENV.APP_NAME}!`;
     const html = buildEmail(`<h2 style="color:#222;">¡Hola ${userName}!</h2><p>Tu cuenta ha sido creada con éxito.</p>`);
-    
-    // Lanzamos y no esperamos
-    fireAndForget(sendEmail({ to: userEmail, subject, html }));
-    return { success: true, status: 'pending' };
+    fireAndForget(sendEmail({ to: userEmail, subject: `¡Bienvenido/a a ${ENV.APP_NAME}!`, html }));
+    return { success: true };
 };
 
 export const sendOrderCreatedAdminEmail = async (orderData) => {
