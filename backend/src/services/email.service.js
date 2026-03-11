@@ -1,37 +1,12 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { ENV } from "../config/env.js";
 
-const transporter = nodemailer.createTransport({
-    // Volvemos al host por nombre, pero con una configuración de socket más robusta
-    service: 'gmail',
-    host: "smtp.gmail.com", 
-    port: 465, // Cambiamos a 465 (Secure) que a veces tiene mejor ruta en Render
-    secure: true, 
-    auth: {
-        user: ENV.ADMIN_EMAIL,
-        pass: ENV.EMAIL_PASSWORD, // Asegúrate de que sea una "Contraseña de Aplicación"
-    },
-    tls: {
-        rejectUnauthorized: false
-    },
-    // Tiempos de espera agresivos para que Render no mate el proceso antes de tiempo
-    connectionTimeout: 30000, 
-    greetingTimeout: 30000,
-    socketTimeout: 30000,
-});
-
-// Verificación silenciosa para no llenar los logs si falla, pero avisar si conecta
-transporter.verify((error) => {
-    if (error) {
-        console.warn("⚠️ Servidor de email en espera (posible bloqueo de red en Render)");
-    } else {
-        console.log("✅ Servidor de email listo y conectado");
-    }
-});
+// Inicializamos Resend en lugar de Nodemailer
+const resend = new Resend(ENV.RESEND_API_KEY);
 
 const SHIPPING_COST = 10000;
 
-// --- Helpers de Plantillas (Se mantienen igual) ---
+// --- Helpers de Plantillas (Se mantienen exactamente igual para no romper nada) ---
 
 const buildEmail = (bodyContent) => `
 <!DOCTYPE html>
@@ -123,31 +98,43 @@ const buildFullOrderDetail = (orderData) => `
     ${buildAddressColumns(orderData.shippingAddress, orderData.billingAddress)}
 `;
 
-// --- FUNCIONES DE ENVÍO CORREGIDAS (NON-BLOCKING) ---
+// --- NUEVA LÓGICA DE ENVÍO CON RESEND (VÍA HTTP API) ---
 
 export const sendEmail = async ({ to, subject, html, attachments = [] }) => {
     try {
-        const info = await transporter.sendMail({
-            from: `"${ENV.APP_NAME}" <${ENV.ADMIN_EMAIL}>`,
-            to,
-            subject,
-            html,
-            ...(attachments?.length > 0 && { attachments }),
+        // Resend usa un formato de adjuntos ligeramente distinto (content debe ser string base64 o buffer)
+        const formattedAttachments = attachments.map(att => ({
+            filename: att.filename,
+            content: att.content
+        }));
+
+        const { data, error } = await resend.emails.send({
+            from: `${ENV.APP_NAME} <onboarding@resend.dev>`, // Cambiar a tu dominio verificado cuando lo tengas
+            to: [to],
+            subject: subject,
+            html: html,
+            attachments: formattedAttachments.length > 0 ? formattedAttachments : undefined
         });
-        console.log(`✅ Email enviado a ${to}: ${info.messageId}`);
-        return { success: true };
-    } catch (error) {
-        // Log detallado para saber si es por IP, DNS o Credenciales
-        console.error(`❌ Fallo envío a ${to}:`, error.code || error.message);
-        return { success: false, error: error.message };
+
+        if (error) {
+            console.error(`❌ Error API Resend enviando a ${to}:`, error);
+            return { success: false, error };
+        }
+
+        console.log(`✅ Email enviado vía Resend a ${to}. ID: ${data.id}`);
+        return { success: true, id: data.id };
+    } catch (err) {
+        console.error(`❌ Fallo crítico en sendEmail (Resend):`, err.message);
+        return { success: false, error: err.message };
     }
 };
 
 const fireAndForget = (promise) => {
-    promise.catch(err => console.error("❌ Segundo plano email:", err.message));
+    promise.catch(err => console.error("❌ Error en email de segundo plano (Resend):", err.message));
 };
 
-// Implementación de las funciones de negocio
+// --- Mantenemos todas tus funciones de negocio (se usan exactamente igual) ---
+
 export const sendWelcomeEmail = async ({ userName, userEmail }) => {
     const html = buildEmail(`<h2 style="color:#222;">¡Hola ${userName}!</h2><p>Tu cuenta ha sido creada con éxito.</p>`);
     fireAndForget(sendEmail({ to: userEmail, subject: `¡Bienvenido/a a ${ENV.APP_NAME}!`, html }));
@@ -157,7 +144,6 @@ export const sendWelcomeEmail = async ({ userName, userEmail }) => {
 export const sendOrderCreatedAdminEmail = async (orderData) => {
     const orderId = (orderData.orderId || '').slice(-8).toUpperCase();
     const html = buildEmailWithOrderRef(orderId, `<h2>Nuevo Pedido</h2>${buildFullOrderDetail(orderData)}`);
-    
     fireAndForget(sendEmail({ to: ENV.ADMIN_EMAIL, subject: `Nuevo pedido #${orderId}`, html }));
 };
 
@@ -165,7 +151,6 @@ export const sendOrderCreatedClientEmail = async (orderData) => {
     if (!orderData.emailNotifications) return;
     const orderId = orderData.orderId.slice(-8).toUpperCase();
     const html = buildEmailWithOrderRef(orderId, `<h2>¡Gracias por tu compra!</h2>${buildFullOrderDetail(orderData)}`);
-    
     fireAndForget(sendEmail({ to: orderData.userEmail, subject: `Pedido recibido #${orderId}`, html }));
 };
 
@@ -179,7 +164,7 @@ export const sendInvoiceEmails = async (data) => {
                 to: userEmail,
                 subject: `Factura Pedido #${orderIdShort}`,
                 html: buildEmailWithOrderRef(orderIdShort, `<p>Adjunto encontrarás tu factura ${invoiceNumber}.</p>`),
-                attachments: [{ filename: `${invoiceNumber}.pdf`, content: pdfBuffer, contentType: "application/pdf" }],
+                attachments: [{ filename: `${invoiceNumber}.pdf`, content: pdfBuffer }],
             });
         }
         await sendEmail({
@@ -187,15 +172,16 @@ export const sendInvoiceEmails = async (data) => {
             subject: `Pago Confirmado #${orderIdShort}`,
             html: buildEmailWithOrderRef(orderIdShort, `<p>Factura generada: ${invoiceNumber}</p>`),
             attachments: [
-                { filename: `${invoiceNumber}.pdf`, content: pdfBuffer, contentType: "application/pdf" },
-                { filename: `${invoiceNumber}.csv`, content: Buffer.from(csvContent, "utf-8"), contentType: "text/csv" }
+                { filename: `${invoiceNumber}.pdf`, content: pdfBuffer },
+                { filename: `${invoiceNumber}.csv`, content: Buffer.from(csvContent, "utf-8") }
             ],
         });
     };
-
     fireAndForget(runAsync());
     return { success: true };
 };
+
+
 
 // --- FUNCIONES FALTANTES PARA EL ADMIN CONTROLLER ---
 

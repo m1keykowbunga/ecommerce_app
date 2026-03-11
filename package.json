@@ -4,5 +4,8 @@
   "scripts": {
     "build": "npm install --prefix backend && npm install --prefix web && cd web && npx vite build && cd .. && npm install --prefix admin && cd admin && npx vite build && cd ..",
     "start": "node backend/src/server.js"
+  },
+  "dependencies": {
+    "resend": "^6.9.3"
   }
 }
