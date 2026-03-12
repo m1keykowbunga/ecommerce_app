@@ -383,39 +383,6 @@ const Profile = () => {
         </div>
       )}
 
-      {/* Cambiar Contraseña */}
-      {activeTab === 'password' && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Cambiar Contraseña</h2>
-          <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="space-y-4 max-w-md">
-            <Input
-              label="Contraseña actual"
-              type="password"
-              error={passwordErrors.currentPassword?.message}
-              required
-              {...registerPassword('currentPassword')}
-            />
-            <Input
-              label="Nueva contraseña"
-              type="password"
-              error={passwordErrors.newPassword?.message}
-              required
-              {...registerPassword('newPassword')}
-            />
-            <Input
-              label="Confirmar nueva contraseña"
-              type="password"
-              error={passwordErrors.confirmNewPassword?.message}
-              required
-              {...registerPassword('confirmNewPassword')}
-            />
-            <Button type="submit" variant="primary" loading={passwordSubmitting}>
-              Cambiar contraseña
-            </Button>
-          </form>
-        </div>
-      )}
-
       {/* Modal Dirección */}
       <Modal
         isOpen={showAddressModal}
