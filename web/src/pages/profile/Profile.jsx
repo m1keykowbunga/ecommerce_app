@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { toast } from 'react-toastify';
-import { IoPersonCircle, IoLocation, IoLockClosed, IoTrash, IoAdd, IoReceiptOutline, IoHeartOutline } from 'react-icons/io5';
+import { IoPersonCircle, IoLocation, IoTrash, IoAdd, IoReceiptOutline, IoHeartOutline } from 'react-icons/io5';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { profileSchema, changePasswordSchema } from '../../utils/validationSchemas';
+import { profileSchema } from '../../utils/validationSchemas';
 import useAddresses from '../../hooks/useAddresses';
 import useProfile from '../../hooks/useProfile';
 import AddressForm from '../../components/profile/AddressForm';
@@ -27,7 +27,7 @@ const onlyNumbers = (e) => {
 const Profile = () => {
   const { user, updateProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('info');
-  const { addresses, createAddressAsync, updateAddressAsync, deleteAddress } = useAddresses();
+  const { addresses, createAddressAsync, updateAddressAsync, deleteAddressAsync } = useAddresses();
   const {
     profile,
     updateProfile: updateDemographics,
@@ -64,6 +64,7 @@ const Profile = () => {
     formState: { errors: profileErrors, isSubmitting: profileSubmitting },
   } = useForm({
     resolver: yupResolver(profileSchema),
+    mode: 'onBlur',
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
@@ -92,26 +93,9 @@ const Profile = () => {
     }
   }, [profile, resetDemographic]);
 
-  // Password form
-  const {
-    register: registerPassword,
-    handleSubmit: handlePasswordSubmit,
-    formState: { errors: passwordErrors, isSubmitting: passwordSubmitting },
-    reset: resetPassword,
-  } = useForm({
-    resolver: yupResolver(changePasswordSchema),
-  });
-
   const onProfileSubmit = async (data) => {
     const success = await updateProfile(data);
     if (success) toast.success('Perfil actualizado');
-  };
-
-  const onPasswordSubmit = async () => {
-    // Mock
-    await new Promise((r) => setTimeout(r, 500));
-    toast.success('Contraseña actualizada');
-    resetPassword();
   };
 
   const handleAddressSubmit = async (data) => {
@@ -130,9 +114,13 @@ const Profile = () => {
     }
   };
 
-  const handleDeleteAddress = (addressId) => {
-    deleteAddress(addressId);
-    toast.success('Dirección eliminada');
+  const handleDeleteAddress = async (addressId) => {
+    try {
+      await deleteAddressAsync(addressId);
+      toast.success('Dirección eliminada');
+    } catch {
+      toast.error('Error al eliminar la dirección');
+    }
   };
 
   const onDemographicSubmit = (data) => {
@@ -158,7 +146,6 @@ const Profile = () => {
   const tabs = [
     { id: 'info', label: 'Info Personal', icon: <IoPersonCircle size={18} /> },
     { id: 'addresses', label: 'Direcciones', icon: <IoLocation size={18} /> },
-    { id: 'password', label: 'Contraseña', icon: <IoLockClosed size={18} /> },
   ];
 
   return (
@@ -225,6 +212,7 @@ const Profile = () => {
           <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="space-y-4 max-w-md">
             <Input
               label="Nombre"
+              helperText="Solo letras y espacios"
               error={profileErrors.name?.message}
               required
               onKeyDown={noNumbers}
@@ -241,6 +229,7 @@ const Profile = () => {
               label="Teléfono"
               type="tel"
               placeholder="3001234567"
+              helperText="10 dígitos, empieza por 3. Ej: 3001234567"
               maxLength={10}
               onKeyDown={onlyNumbers}
               error={profileErrors.phone?.message}
@@ -353,13 +342,15 @@ const Profile = () => {
             <Button
               variant="primary"
               size="sm"
-              icon={<IoAdd size={18} />}
               onClick={() => {
                 setEditingAddress(null);
                 setShowAddressModal(true);
               }}
             >
-              Agregar
+              <span className="flex items-center gap-1">
+                <IoAdd size={18} />
+                <span>Agregar</span>
+              </span>
             </Button>
           </div>
 
@@ -369,7 +360,7 @@ const Profile = () => {
             <div className="space-y-3">
               {addresses.map((addr) => (
                 <AddressCard
-                  key={addr.id}
+                  key={addr._id}
                   address={addr}
                   onEdit={(a) => {
                     setEditingAddress(a);
